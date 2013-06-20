@@ -1,9 +1,9 @@
 /*
  * =====================================================================================
  *
- *       Filename:  structure.c
+ *       Filename:  algrithms.c
  *
- *    Description:  algrithms described in K&R the C programming language chapter6
+ *    Description:  algrithms implemented in C
  *
  *        Version:  1.0
  *        Created:  06/18/2013 02:54:36 PM
@@ -46,6 +46,7 @@ int binsearch(char *word, struct key tab[],int n)
 	}
 	return -1;
 }
+
 void insertSort(int* array,int n)
 {
 	int i=0,j=0,key=0;
@@ -77,6 +78,7 @@ void insertSort_reverse(int* array, int n)
 		array[k+1]=key;
 	}
 }
+
 void selectionSort(int* array,int n)
 {
 //loop invariant: everytime array[0:i] is sorted in desreasing order
@@ -111,6 +113,7 @@ void printarray(int *array,int n)
 	}
 	printf("]\n");
 }
+
 void generatArray(int* parray,int n,int max)
 {
 	srand(time(NULL));
@@ -124,11 +127,12 @@ void generatArray(int* parray,int n,int max)
 struct tnode {
 	char *word;
 	int count;
+	int lvl;
 	struct tnode *left;
 	struct tnode *right;
 };
 
-struct tnode *addtree(struct tnode *p, char *w)
+struct tnode *addtree(struct tnode *p, char *w,int lvl)
 {
 	int cond;
 	char *strdup_KR(char *s);
@@ -138,22 +142,41 @@ struct tnode *addtree(struct tnode *p, char *w)
 		p = talloc();
 		p->word = strdup_KR(w);
 		p->count = 1;
+		p->lvl=lvl;
 		p->left = p->right = NULL;
 	} else if ((cond = strcmp(w,p->word)) == 0)
 		p->count++;
 	else if (cond < 0)
-		p->left = addtree(p->left,w);
+		p->left = addtree(p->left,w,(p->lvl)+1);
 	else
-		p->right = addtree(p->right,w);
+		p->right = addtree(p->right,w,(p->lvl)+1);
+/*  	printf("node add status:\n");
+	printf("word: %s\n",p->word);
+	printf("level: %d\n",p->lvl);
+	printf("count: %d\n",p->count);
+	printf("left: %s\n",((p->left == NULL) ? "NULL":p->left->word));
+       	printf("right: %s\n",((p->right== NULL) ? "NULL":p->right->word));
+       	printf("node status done\n");*/
 	return p;
 
 }
+int trdestry(struct tnode* root)
+{
+	struct tnode *left,*right;
+	if((left=root->left) != NULL)
+		trdestry(left);
+	if((right=root->right) != NULL)
+		trdestry(right);
+	free(root->word);
+	free(root);
+}
+
 void treeprint(struct tnode *p)
 {
 	if(p != NULL) 
 	{
 		treeprint(p->left);
-		printf("%4d %s\n",p->count,p->word);
+		printf("%d %d %s\n",p->lvl,p->count,p->word);
 		treeprint(p->right);
 	}
 }
@@ -197,23 +220,26 @@ int getword(char *word,int lim)
 	while (isspace(c = getch_KR()))
 		;
 	if( c != EOF )
-		*w++ = '\0';
-	if(!isalpha(c)) {
+		*w++ = c;
+	if(!(isalpha(c)||c == '_')) { /* alphabic or_ */
 		*w='\0';
 		return c;
 	}
 	for (; --lim > 0;w++)
-		if(!isalnum(*w = getch_KR())) {
+	{
+		*w = getch_KR();
+		if(!(isalnum(*w)||*w=='_')) {
 			ungetch_KR(*w);
 			break;
 		}
+	}
 	*w='\0';
 	return word[0];
 
 }
 	
 #define MAXWORD 100
-struct tnode *addtree(struct tnode *, char *);
+struct tnode *addtree(struct tnode *, char *,int);
 void treeprint(struct tnode *);
 int getword(char *, int);
 
@@ -225,11 +251,11 @@ int main()
 	root=NULL;
 	while (getword(word,MAXWORD) != EOF)
 	{
-		printf("get ur word: %s\n",word);
 		if (isalpha(word[0]))
-			root = addtree(root,word);
+			root = addtree(root,word,0);
 	}
 	treeprint(root);
+	trdestry(root);
 	return 0;
 
 }
