@@ -238,7 +238,63 @@ int getword(char *word,int lim)
 
 }
 	
+struct nlist {
+	struct nlist *next;
+	char *name;
+	char *defn;
+};
+
+#define HASHSIZE 101
+unsigned hash(char *s)
+{
+	unsigned hashval;
+
+	for(hashval=0;*s != '\0';s++)
+		hashval = *s + 31*hashval;
+	return hashval % HASHSIZE;
+}
+
+struct nlist *lookup(char *s)
+{
+	struct nlist *np;
+
+	for(np=hashtab[hash(s)];np != NULL; np=np->next;)
+		if(strcmp(np->name,s) == 0)
+			return np;
+	return NULL;
+}
+
+struct nlist *install(char *name, char *defn)
+{
+	struct nlist *np;
+	unsigned hashval;
+
+	if((np=lookup(name)) == NULL) {
+		np =(struct nlist *) malloc(sizeof(*np));
+		if(np == NULL || (np->name = strdup(name)) == NULL)
+			return NULL;
+		hashval = hash(name);
+		np->next = hashtab[hashval];
+		hashtab[hashval] = np;
+	} else
+		free((void *) np->defn);
+	if((np->defn = strdup(defn)) == NULL)
+		return NULL;
+	return np;
+
+}
+
+void rnlist(struct nlist *pn)
+{
+	if(pn->next != NULL)
+		rnlist(pn->next);
+	free(pn->name);
+	free(pn->defn);
+	free(pn);
+}
+
 #define MAXWORD 100
+static struct nlist *hashtab[HASHSIZE];
 struct tnode *addtree(struct tnode *, char *,int);
 void treeprint(struct tnode *);
 int getword(char *, int);
@@ -249,13 +305,15 @@ int main()
 	char word[MAXWORD];
 
 	root=NULL;
-	while (getword(word,MAXWORD) != EOF)
+/*	while (getword(word,MAXWORD) != EOF)
 	{
 		if (isalpha(word[0]))
 			root = addtree(root,word,0);
 	}
 	treeprint(root);
-	trdestry(root);
+	trdestry(root);*/
+
+
 	return 0;
 
 }
