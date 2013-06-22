@@ -244,7 +244,9 @@ struct nlist {
 	char *defn;
 };
 
-#define HASHSIZE 101
+#define HASHSIZE 10
+static struct nlist *hashtab[HASHSIZE];
+
 unsigned hash(char *s)
 {
 	unsigned hashval;
@@ -258,7 +260,7 @@ struct nlist *lookup(char *s)
 {
 	struct nlist *np;
 
-	for(np=hashtab[hash(s)];np != NULL; np=np->next;)
+	for(np=hashtab[hash(s)];np != NULL; np=np->next)
 		if(strcmp(np->name,s) == 0)
 			return np;
 	return NULL;
@@ -284,6 +286,7 @@ struct nlist *install(char *name, char *defn)
 
 }
 
+/* release the entire nlist */
 void rnlist(struct nlist *pn)
 {
 	if(pn->next != NULL)
@@ -293,8 +296,53 @@ void rnlist(struct nlist *pn)
 	free(pn);
 }
 
+/* release the hash table */
+void releaseHS(){
+	int i;
+	for(i=0;i<HASHSIZE;i++){
+		rnlist(hashtab[i]);
+	}
+}
+
+/* undef one nlist element */
+struct nlist *undef(char *s)
+{
+	struct nlist *np,*np_pre;
+	for(np=hashtab[hash(s)];np!=NULL;np=np->next){
+		if(strcmp(s,np->name) == 0){
+			np_pre->next = np->next;
+			np->next=NULL;
+			free(np->name);
+			free(np->defn);
+			free(np);
+			return np_pre->next;
+		}
+		np_pre = np;/* record the parent node */
+	}
+	return NULL;
+}
+
+void printnlist(struct nlist* np)
+{
+	printf("(name:%s;defn:%s)",(np->name != NULL? np->name:"NULL"),(np->defn != NULL? np->defn:"NULL"));
+	struct nlist* mp;
+	for(mp=np+1;mp!=NULL;mp++) 
+		printf("->(name:%s;defn:%s)",(mp->name!=NULL?mp->name:"NULL"),(mp->defn != NULL? mp->defn:"NULL"));
+	return;
+}
+
+void printHS(){
+	int i;
+	for(i=0;i<HASHSIZE;i++){
+		if(hashtab[i] != NULL){
+			printnlist(hashtab[i]);
+			printf("\n");
+		}
+	}
+	return;
+}
+
 #define MAXWORD 100
-static struct nlist *hashtab[HASHSIZE];
 struct tnode *addtree(struct tnode *, char *,int);
 void treeprint(struct tnode *);
 int getword(char *, int);
@@ -312,7 +360,13 @@ int main()
 	}
 	treeprint(root);
 	trdestry(root);*/
-
+	while (getword(word,MAXWORD) != EOF)
+	{
+		if (isalpha(word[0]))
+			install(word,"defn_default");
+	}
+	printHS(hashtab,HASHSIZE);
+	releaseHS();
 
 	return 0;
 
