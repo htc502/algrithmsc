@@ -278,7 +278,7 @@ struct nlist *install(char *name, char *defn)
 		hashval = hash(name);
 		np->next = hashtab[hashval];
 		hashtab[hashval] = np;
-	} else
+		} else
 		free((void *) np->defn);
 	if((np->defn = strdup(defn)) == NULL)
 		return NULL;
@@ -289,18 +289,22 @@ struct nlist *install(char *name, char *defn)
 /* release the entire nlist */
 void rnlist(struct nlist *pn)
 {
+	if(pn == NULL)
+		return;
 	if(pn->next != NULL)
 		rnlist(pn->next);
 	free(pn->name);
 	free(pn->defn);
 	free(pn);
+	pn=NULL;
 }
 
 /* release the hash table */
 void releaseHS(){
 	int i;
 	for(i=0;i<HASHSIZE;i++){
-		rnlist(hashtab[i]);
+		if(hashtab[i] != NULL) 
+			rnlist(hashtab[i]);
 	}
 }
 
@@ -324,20 +328,21 @@ struct nlist *undef(char *s)
 
 void printnlist(struct nlist* np)
 {
-	printf("(name:%s;defn:%s)",(np->name != NULL? np->name:"NULL"),(np->defn != NULL? np->defn:"NULL"));
+	if(np == NULL)
+		return;
+	char *n="NULL";
+	printf("(%s---%s)",(np->name != NULL? np->name:n),(np->defn != NULL? np->defn:n));
 	struct nlist* mp;
-	for(mp=np+1;mp!=NULL;mp++) 
-		printf("->(name:%s;defn:%s)",(mp->name!=NULL?mp->name:"NULL"),(mp->defn != NULL? mp->defn:"NULL"));
+	for(mp=np->next;mp!=NULL;mp=mp->next) 
+		printf("->(%s---%s)",(mp->name!=NULL?mp->name:n),(mp->defn != NULL? mp->defn:n));
 	return;
 }
 
 void printHS(){
 	int i;
 	for(i=0;i<HASHSIZE;i++){
-		if(hashtab[i] != NULL){
-			printnlist(hashtab[i]);
-			printf("\n");
-		}
+		printnlist(hashtab[i]);
+		printf("\n");
 	}
 	return;
 }
@@ -360,10 +365,16 @@ int main()
 	}
 	treeprint(root);
 	trdestry(root);*/
+	/* initialize nlist array */
+	int i=0;
+	for(i=0;i<HASHSIZE;i++) {
+		hashtab[i]=NULL;
+	}
+	char *den_default="defn_default";
 	while (getword(word,MAXWORD) != EOF)
 	{
 		if (isalpha(word[0]))
-			install(word,"defn_default");
+			install(word,den_default);
 	}
 	printHS(hashtab,HASHSIZE);
 	releaseHS();
