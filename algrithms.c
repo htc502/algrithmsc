@@ -46,15 +46,17 @@ int binsearch(char *word, struct key tab[],int n)
 	}
 	return -1;
 }
+`
+/*one word for insertsort: insertsort simulates the work u have done when u play with poke cards */
 
 void insertSort(int* array,int n)
 {
 	int i=0,j=0,key=0;
-	for(j=1;j<=n-1;j++)
+	for(j=1;j<n;j++)
 	{
 		key=*(array+j);
 		i=j-1;
-		while(i>=0 && *(array+i) > key)
+		while(i>=0 && *(array+i) > key)/* loop from j-1 to 0 */
 		{
 			*(array+i+1)=*(array+i);
 			i-=1;
@@ -65,17 +67,17 @@ void insertSort(int* array,int n)
 
 void insertSort_reverse(int* array, int n)
 {
-	int i=0,k=0,key=0;
-	for(i=1;i<n;i++)
+	int i=0,j=0,key=0;
+	for(j=1;j<n;j++)
 	{
-		key=array[i];
-		k=i-1;
-		while(key>array[k]&&k>=0)//maintain sorted numbers in decreasing order
+		key=array[j];
+		i=j-1;
+		while(key>array[i]&&i>=0)//maintain sorted numbers in decreasing order
 		{
-			array[k+1]=array[k];
-			k-=1;
+			array[i+1]=array[i];
+			i-=1;
 		}
-		array[k+1]=key;
+		array[i+1]=key;/* i has been minused by 1, so add it back */
 	}
 }
 
@@ -83,18 +85,18 @@ void selectionSort(int* array,int n)
 {
 //loop invariant: everytime array[0:i] is sorted in desreasing order
 	int i=0,temp=0,j=0,max_ind=0;
-	for(i=0;i<n-1;i++)
+	for(i=0;i<n;i++)
 	{
-//find max index in i:n
-		max_ind=i;
-		for(j=i;j<n;j++)
+//find index of the max element in i+1:n-1
+		max_ind=i+1;
+		for(j=i+1;j<n;j++)
 		{
 			if(array[j]>array[max_ind]) max_ind=j;
 		}
 //switch
 		temp=array[max_ind];
-		array[max_ind]=array[i];
-		array[i]=temp;
+		array[max_ind]=array[i+1];
+		array[i+1]=temp;
 	}
 }
 //todo
