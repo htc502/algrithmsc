@@ -99,9 +99,24 @@ void selectionSort(int* array,int n)
 		array[i+1]=temp;
 	}
 }
-//todo
-void merge(int* array,int n, int p,int q, int r)
+//mergeSort
+void merge(int* array,int len, int p,int q, int r)
 {
+	int L[q-p+1], R[r-q];
+	int i=0;
+	for(i=p;i<=r;i++)
+		i>q ? R[i-q-1]=array[i]:L[i-p]=array[i];
+	int li=0;ri=0,x=p;
+	while(li+ri <= (r-p-1)) {
+		if(L[li] >= R[ri])
+			array[x++]=L[li++];
+		else
+			array[x++]=R[ri++];
+	}	
+}
+void mergeSort(int *array, int len)
+{
+	int split=len/2;
 
 }
 
