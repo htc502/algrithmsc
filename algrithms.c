@@ -18,7 +18,8 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdio.h>
-#include<time.h>
+#include <time.h>
+#include <limits.h>
 
 
 #define MAXWORD 100
@@ -46,7 +47,7 @@ int binsearch(char *word, struct key tab[],int n)
 	}
 	return -1;
 }
-`
+
 /*one word for insertsort: insertsort simulates the work u have done when u play with poke cards */
 
 void insertSort(int* array,int n)
@@ -102,34 +103,52 @@ void selectionSort(int* array,int n)
 //mergeSort
 void merge(int* array,int len, int p,int q, int r)
 {
-	int L[q-p+1], R[r-q];
+	//p,q,r are all start from zero
+	void printarray(int*,int,int,int);
+	int L[q-p+1+1], R[r-q+1];//one more cell for the sentinel value
+	//when dealing with sorted sequence combine problem, sentinel value is a simple and good solution
 	int i=0;
 	for(i=p;i<=r;i++)
-		i>q ? R[i-q-1]=array[i]:L[i-p]=array[i];
-	int li=0;ri=0,x=p;
-	while(li+ri <= (r-p-1)) {
-		if(L[li] >= R[ri])
+		i>q ? (R[i-q-1]=array[i]):(L[i-p]=array[i]);
+	L[q-p+1]=INT_MAX;
+	R[r-q]=INT_MAX;
+	int li=0,ri=0,x=p;
+	while((L[li]!= INT_MAX) ||(R[ri]!=INT_MAX)) {
+		if(L[li] <= R[ri]){
 			array[x++]=L[li++];
-		else
+		}
+		else{
 			array[x++]=R[ri++];
+		}
 	}	
 }
-void mergeSort(int *array, int len)
+void mergeSort(int *array, int start, int end)
 {
-	int split=len/2;
-
+	void merge(int *,int,int,int,int);
+	void printarray(int *,int,int,int);
+	if(end > start){
+		int split=(end+start)/2;
+		mergeSort(array,start,split);
+		mergeSort(array,split+1,end);
+		merge(array,(end-start+1),start,split,end);
+	}
 }
 
-void printarray(int *array,int n)
+void printarray(int *array,int len,int start,int end)
 {
+	if(start<0 || (end-start+1) > len){
+		printf("index out of range\n");
+		return;
+	}
 	printf("[ ");
 	int i=0;
-	for(i=0;i<n;i++)
+	for(i=start;i<=end;i++)
 	{
 		printf("%d ",*(array+i));
 	}
 	printf("]\n");
 }
+
 
 void generatArray(int* parray,int n,int max)
 {
@@ -177,7 +196,7 @@ struct tnode *addtree(struct tnode *p, char *w,int lvl)
 	return p;
 
 }
-int trdestry(struct tnode* root)
+void trdestry(struct tnode* root)
 {
 	struct tnode *left,*right;
 	if((left=root->left) != NULL)
@@ -371,18 +390,17 @@ int getword(char *, int);
 
 int main()
 {
-	struct tnode *root;
+	/* struct tnode *root;
 	char word[MAXWORD];
 
-	root=NULL;
-/*	while (getword(word,MAXWORD) != EOF)
+  	root=NULL;
+	while (getword(word,MAXWORD) != EOF)
 	{
 		if (isalpha(word[0]))
 			root = addtree(root,word,0);
 	}
 	treeprint(root);
-	trdestry(root);*/
-	/* initialize nlist array */
+	trdestry(root);
 	int i=0;
 	for(i=0;i<HASHSIZE;i++) {
 		hashtab[i]=NULL;
@@ -394,7 +412,14 @@ int main()
 			install(word,den_default);
 	}
 	printHS(hashtab,HASHSIZE);
-	releaseHS();
+	releaseHS();*/
+//	int x[13]={4,7,9,10,12,30,7,9,10,14,16,18,29};
+	int x[10];
+	generatArray(x,10,19);
+	printarray(x,10,0,9);
+	mergeSort(x,0,9);
+	//merge(x,13,0,5,12);
+	printarray(x,10,0,9);
 
 	return 0;
 
