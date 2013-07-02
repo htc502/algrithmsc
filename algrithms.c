@@ -113,7 +113,7 @@ void merge(int* array,int len, int p,int q, int r)
 	L[q-p+1]=INT_MAX;
 	R[r-q]=INT_MAX;
 	int li=0,ri=0,x=p;
-	while((L[li]!= INT_MAX) ||(R[ri]!=INT_MAX)) {
+	while((L[li]!= INT_MAX) ||(R[ri]!=INT_MAX)) {//for(m=p,m<=r,m++) {... array[m]=L[?]/R[?] ...}
 		if(L[li] <= R[ri]){
 			array[x++]=L[li++];
 		}
