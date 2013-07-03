@@ -383,6 +383,14 @@ void printHS(){
 	return;
 }
 
+/* another form of Burrow Wheller Transform */
+void bwt(char *str,int *result)
+{
+	int strlen=strlen(str);
+	/* get order of input string */
+
+}
+
 #define MAXWORD 100
 struct tnode *addtree(struct tnode *, char *,int);
 void treeprint(struct tnode *);
