@@ -383,14 +383,44 @@ void printHS(){
 	return;
 }
 
+
 /* another form of Burrow Wheller Transform */
-void bwt(char *str,int *result)
+//printable characters
+char prtchr[]={32,33,34,35,36,37,38,39,40,41, \
+		42,43,44,45,46,47,48,49,50,51, \
+		52,53,54,55,56,57,58,59,60,61, \
+		62,63,64,65,66,67,68,69,70,71, \
+		72,73,74,75,76,77,78,79,80,81, \
+		82,83,84,85,86,87,88,89,90,91, \
+		92,93,94,95,96,97,98,99,100,101, \
+		101,103,104,105,106,107,108,109,110, \
+		111,112,113,114,115,116,117,118,119, \
+		120,121,122,123,124,125,126};//char a='x'is equivalent to char a=120, but char a='120' is nothing but a fault!
+
+void bwt(char *str,int len,int *result)
 {
-	int strlen=strlen(str);
-	/* get order of input string */
-
+	int prtchrNum=strlen(prtchr);
+	int i=0,j=0,x=0;
+	for(i=0;i<prtchrNum;i++){
+		char ch=prtchr[i];
+		for(j=0;j<len;j++){
+			if(str[j] == ch)
+				result[x++]=(j==(len-1)?0:(j+1));//j-1 is ok
+		}
+	}
 }
-
+void sortstring(char *str,int len,int *result)
+{
+	int prtchrNum=strlen(prtchr);
+	int i=0,j=0,x=0;
+	for(i=0;i<prtchrNum;i++){
+		char ch=prtchr[i];
+		for(j=0;j<len;j++){
+			if(str[j] == ch)
+				result[x++]=j;
+		}
+	}
+}
 #define MAXWORD 100
 struct tnode *addtree(struct tnode *, char *,int);
 void treeprint(struct tnode *);
@@ -422,13 +452,27 @@ int main()
 	printHS(hashtab,HASHSIZE);
 	releaseHS();*/
 //	int x[13]={4,7,9,10,12,30,7,9,10,14,16,18,29};
-	int x[10];
+	/*int x[10];
 	generatArray(x,10,19);
 	printarray(x,10,0,9);
 	mergeSort(x,0,9);
 	//merge(x,13,0,5,12);
-	printarray(x,10,0,9);
+	printarray(x,10,0,9);*/
 
+	char x[]="this is a child who is eager to do something!";
+	int pos[45],pos_s[45],i,m;
+	bwt(x,45,pos);
+	sortstring(x,45,pos_s);
+	for(i=0;i<45;i++){
+		m=pos[i];
+		printf("%c",x[m]);
+	}
+	printf("\n");
+	for(i=0;i<45;i++){
+		m=pos_s[i];
+		printf("%c",x[m]);
+	}
+	printf("\n");
 	return 0;
 
 }
