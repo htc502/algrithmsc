@@ -421,6 +421,81 @@ void sortstring(char *str,int len,int *result)
 		}
 	}
 }
+
+/** heap sort **/
+/* auxillary funcs */
+int parent(int i)
+{
+	return i%2==0?i/2-1:i/2;
+}
+
+int left(int i)
+{
+	return 2*i+1;/* index start from 0 */
+}
+
+int right(int i)
+{
+	return 2*i+2;
+}
+
+void max_heapify(int *array,int narray,int iroot)
+{
+	/* keep the heap with the property a[parent(i)]>=a[i] */
+	int parent(int);
+	int left(int);
+	int right(int);
+
+	int l,r,largest;
+	l=left(iroot);
+	r=right(iroot);
+	if(l<narray && array[l]> array[iroot])
+		largest=l;
+	else
+		largest=iroot;
+	if(r<narray && array[r]>array[iroot])
+		largest=r;
+	if(largest != iroot){
+		int m=array[iroot];
+		array[iroot]=array[largest];
+		array[largest]=m;
+		max_heapify(array,narray,largest);
+	}
+}
+
+/* build a max heap from buttom */
+void  build_max_heap(int *array,int narray)
+{
+	void max_heapify(int *,int,int);
+	void printarray(int*,int,int,int);
+	int m=narray/2;
+	for(;m>=0;m--)
+	{
+		max_heapify(array,narray,m);
+	}
+}
+/* heap sort */
+void heapsort(int *array,int narray)
+{
+	void build_max_heap(int*,int);
+	void max_heapify(int*,int,int);
+	build_max_heap(array,narray);
+	int x=0,heapsize=narray;
+	for(x=narray-1;x>=1;x--)
+	{
+		printf("array before exchange:");
+		printarray(array,narray,0,heapsize-1);
+		int tmp=array[0];
+		array[0]=array[x];
+		array[x]=tmp;
+		printf("array after exchange:");
+		printarray(array,narray,0,heapsize-1);
+		max_heapify(array,--heapsize,0);
+		printf("array after heapify:");
+		printarray(array,narray,0,heapsize-1);
+	}
+}
+
 #define MAXWORD 100
 struct tnode *addtree(struct tnode *, char *,int);
 void treeprint(struct tnode *);
@@ -452,12 +527,12 @@ int main()
 	printHS(hashtab,HASHSIZE);
 	releaseHS();*/
 //	int x[13]={4,7,9,10,12,30,7,9,10,14,16,18,29};
-	/*int x[10];
+	int x[10];
 	generatArray(x,10,19);
-	printarray(x,10,0,9);
-	mergeSort(x,0,9);
+	//printarray(x,10,0,9);
+	/*mergeSort(x,0,9);
 	//merge(x,13,0,5,12);
-	printarray(x,10,0,9);*/
+	printarray(x,10,0,9);
 
 	char x[]="this is a child who is eager to do something!";
 	int pos[45],pos_s[45],i,m;
@@ -472,7 +547,9 @@ int main()
 		m=pos_s[i];
 		printf("%c",x[m]);
 	}
-	printf("\n");
+	printf("\n");*/
+	heapsort(x,10);
+	//printarray(x,10,0,9);
 	return 0;
 
 }
