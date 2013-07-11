@@ -453,7 +453,7 @@ void max_heapify(int *array,int narray,int iroot)
 		largest=l;
 	else
 		largest=iroot;
-	if(r<narray && array[r]>array[iroot])
+	if(r<narray && array[r]>array[largest])
 		largest=r;
 	if(largest != iroot){
 		int m=array[iroot];
@@ -483,16 +483,10 @@ void heapsort(int *array,int narray)
 	int x=0,heapsize=narray;
 	for(x=narray-1;x>=1;x--)
 	{
-		printf("array before exchange:");
-		printarray(array,narray,0,heapsize-1);
 		int tmp=array[0];
 		array[0]=array[x];
 		array[x]=tmp;
-		printf("array after exchange:");
-		printarray(array,narray,0,heapsize-1);
 		max_heapify(array,--heapsize,0);
-		printf("array after heapify:");
-		printarray(array,narray,0,heapsize-1);
 	}
 }
 
@@ -529,7 +523,7 @@ int main()
 //	int x[13]={4,7,9,10,12,30,7,9,10,14,16,18,29};
 	int x[10];
 	generatArray(x,10,19);
-	//printarray(x,10,0,9);
+	printarray(x,10,0,9);
 	/*mergeSort(x,0,9);
 	//merge(x,13,0,5,12);
 	printarray(x,10,0,9);
@@ -549,6 +543,7 @@ int main()
 	}
 	printf("\n");*/
 	heapsort(x,10);
+	printarray(x,10,0,9);
 	//printarray(x,10,0,9);
 	return 0;
 
