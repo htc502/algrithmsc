@@ -88,16 +88,16 @@ void selectionSort(int* array,int n)
 	int i=0,temp=0,j=0,max_ind=0;
 	for(i=0;i<n;i++)
 	{
-//find index of the max element in i+1:n-1
-		max_ind=i+1;
-		for(j=i+1;j<n;j++)
+//find index of the max element in i:n-1
+		max_ind=i;
+		for(j=i;j<n;j++)
 		{
 			if(array[j]>array[max_ind]) max_ind=j;
 		}
 //switch
 		temp=array[max_ind];
-		array[max_ind]=array[i+1];
-		array[i+1]=temp;
+		array[max_ind]=array[i];
+		array[i]=temp;
 	}
 }
 //mergeSort
@@ -490,6 +490,38 @@ void heapsort(int *array,int narray)
 	}
 }
 
+/* quicksort */
+int partition(int *array, int start, int stop)
+{
+	int x,i,j;
+	x=array[stop];
+	i=start-1;
+	for(j=start;j<stop;j++)
+	{
+		if(array[j]<=x)
+		{
+			i += 1;
+			int temp=array[i];
+			array[i]=array[j];
+			array[j]=temp;
+		}
+	}
+	int p=array[i+1];
+	array[i+1]=array[stop];
+	array[stop]=p;
+	return(i+1);
+}
+
+void quickSort(int *array,int start, int stop)
+{
+	int partition(int *,int,int);
+	int q=partition(array,start,stop);
+	if(q-1 >= start)
+		quickSort(array,start,q-1);
+	if(stop >= q+1)
+		quickSort(array,q+1,stop);
+}
+
 #define MAXWORD 100
 struct tnode *addtree(struct tnode *, char *,int);
 void treeprint(struct tnode *);
@@ -524,11 +556,13 @@ int main()
 	int x[10];
 	generatArray(x,10,19);
 	printarray(x,10,0,9);
-	/*mergeSort(x,0,9);
+	//mergeSort(x,0,9);
 	//merge(x,13,0,5,12);
+	//selectionSort(x,10);
+	quickSort(x,0,9);
 	printarray(x,10,0,9);
 
-	char x[]="this is a child who is eager to do something!";
+/*  	char x[]="this is a child who is eager to do something!";
 	int pos[45],pos_s[45],i,m;
 	bwt(x,45,pos);
 	sortstring(x,45,pos_s);
@@ -542,8 +576,8 @@ int main()
 		printf("%c",x[m]);
 	}
 	printf("\n");*/
-	heapsort(x,10);
-	printarray(x,10,0,9);
+//	heapsort(x,10);
+//	printarray(x,10,0,9);
 	//printarray(x,10,0,9);
 	return 0;
 
