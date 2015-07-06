@@ -11,86 +11,103 @@ int S[5][5] = { {2,-1,-1,-1,-1},
 		{-1,-1,2,-1,-1},
 		{-1,-1,-1,2,-1},
 		{-1,-1,-1,-1,2} };
-/* define a data structure to store the alignRes matrix and back trace */
+/* define a data structure to store the Alignome matrix and back trace */
 typedef struct {
-  int nrow;
-  int ncol;
-  int* array;
-  int* bktrace; /* this is the back trace matr, each entry has a value of (-1,0,1) -1 for <-; 0 for <\; 1 for | */
-} alignRes;
+  int reflen;
+  int seglen;
+  nt* ref;
+  nt* seg;
+  int* score;
+  int* btrace; /* this is the back trace matr, each entry has a value of (-1,0,1) -1 for <-; 0 for <\; 1 for | */
+} Alignome; /* we call it alignome, the struct to record alignment result */
 
-void alignResNew(alignRes* palignRes, int nrow, int ncol)
+void AlignomeNew(Alignome* pAlignome,
+		 int reflen, nt* ref,
+		 int seglen, nt* seg)
 {
-  assert(nrow > 0 && ncol > 0);
-  palignRes->nrow = nrow;
-  palignRes->ncol = ncol;
-  palignRes -> array = (int*) malloc(nrow*ncol*sizeof(int));
-  palignRes -> bktrace = (int*) malloc(nrow*ncol*sizeof(int));
-  assert(palignRes->array != NULL);
-  assert(palignRes->bktrace != NULL);
+  assert(reflen > 0 && seglen > 0);
+  pAlignome->reflen = reflen;
+  pAlignome->seglen = seglen;
+  pAlignome -> score = (int*) malloc((reflen+1)*(seglen+1)*sizeof(int));
+  pAlignome -> btrace = (int*) malloc((reflen+1)*(seglen+1)*sizeof(int));
+  pAlignome -> ref = (nt*) malloc(reflen*sizeof(nt));
+  pAlignome -> seg = (nt*) malloc(seglen*sizeof(nt));
+  assert(pAlignome->score != NULL);
+  assert(pAlignome->btrace != NULL);
+  assert(pAlignome->ref != NULL);
+  assert(pAlignome->seg != NULL);
+  /* cpy seg and ref */
+  int i = 0;
+  for(; i < reflen; i++)
+     memcpy(pAlignome->ref + i, ref + i, sizeof(nt));
+  for(i=0; i < seglen; i++)
+     memcpy(pAlignome->seg + i, seg + i, sizeof(nt));
+    
 }
 
-void alignResDispose(alignRes* palignRes)
+void AlignomeDispose(Alignome* pAlignome)
 {
-  free(palignRes->array);
-  free(palignRes->bktrace);
+  free(pAlignome->score);
+  free(pAlignome->btrace);
+  free(pAlignome->ref);
+  free(pAlignome->seg);
 }
 
-void setScore(alignRes* palignRes, int i, int j, int alignRes)
+void setScore(Alignome* pAlignome, int i, int j, int score)
 {
-  assert(i >= 0 && i < palignRes->nrow);
-  assert(j >= 0 && j < palignRes->ncol);
+  assert(i >= 0 && i < pAlignome->reflen);
+  assert(j >= 0 && j < pAlignome->seglen);
 
-  *(palignRes->array + i*(palignRes->nrow) + j) = alignRes;
+  *(pAlignome->score + i*(pAlignome->reflen) + j) = score;
 }
 
-void setTrace(alignRes* palignRes, int i, int j, int trace)
+void setTrace(Alignome* pAlignome, int i, int j, int trace)
 {
-  assert(i >= 0 && i < palignRes->nrow);
-  assert(j >= 0 && j < palignRes->ncol);
+  assert(i >= 0 && i < pAlignome->reflen);
+  assert(j >= 0 && j < pAlignome->seglen);
 
-  *(palignRes->bktrace + i*(palignRes->nrow) + j) = trace;
+  *(pAlignome->btrace + i*(pAlignome->reflen) + j) = trace;
 }
 
-int getScore(alignRes* palignRes, int i, int j)
+int getScore(Alignome* pAlignome, int i, int j)
 {
-  assert(i >= 0 && i < palignRes->nrow);
-  assert(j >= 0 && j < palignRes->ncol);
+  assert(i >= 0 && i < pAlignome->reflen);
+  assert(j >= 0 && j < pAlignome->seglen);
 
-  return(*(palignRes->array + i*(palignRes->nrow) + j));
+  return(*(pAlignome->score + i*(pAlignome->reflen) + j));
 }
 
-int getTrace(alignRes* palignRes, int i, int j)
+int getTrace(Alignome* pAlignome, int i, int j)
 {
-  assert(i >= 0 && i < palignRes->nrow);
-  assert(j >= 0 && j < palignRes->ncol);
+  assert(i >= 0 && i < pAlignome->reflen);
+  assert(j >= 0 && j < pAlignome->seglen);
 
-  return(*(palignRes->bktrace + i*(palignRes->nrow) + j));
+  return(*(pAlignome->btrace + i*(pAlignome->reflen) + j));
 }
 
-void showScore(alignRes* palignRes)
+void showScore(Alignome* pAlignome)
 {
   int i,j;
   fprintf(stdout, "\n");
-  for(i=0;i<palignRes->nrow;i++)
+  for(i=0;i<pAlignome->reflen;i++)
     {
-      for(j=0;j<palignRes->ncol;j++)
-	fprintf(stdout , "%2i ",getScore(palignRes, i,j));
+      for(j=0;j<pAlignome->seglen;j++)
+	fprintf(stdout , "%2i ",getScore(pAlignome, i,j));
       fprintf(stdout,"\n");
     }
   fprintf(stdout, "\n");
 }
 
-void showTrace(alignRes* palignRes)
+void showTrace(Alignome* pAlignome)
 {
   int i,j;
   fprintf(stdout, "\n");
-  for(i=0;i<palignRes->nrow;i++)
+  for(i=0;i<pAlignome->reflen;i++)
     {
-      for(j=0;j<palignRes->ncol;j++)
+      for(j=0;j<pAlignome->seglen;j++)
 	{
 	  char tr;
-	  switch(getTrace(palignRes, i, j))
+	  switch(getTrace(pAlignome, i, j))
 	    {
 	    case -1:
 	      tr = '|';
@@ -104,44 +121,47 @@ void showTrace(alignRes* palignRes)
 	    default:
 	      tr = '?';
 	    }
-	  fprintf(stdout , "%2c ",tr);
+	  fprintf(stdout , "%1c ",tr);
 	}
       fprintf(stdout,"\n");
     }
   fprintf(stdout, "\n");
 }
 
-void showAlignment(alignRes* palignRes)
+void showAlignment(Alignome* pAlignome)
 {
   /* get the largest value */
-
+  
   /* trace back */
 }
 
-void sw(nt* pref,int reflen, //reference sequence and length
-	nt* pseg, int seglen, alignRes* palignRes ) //segment sequence and length
+void sw( Alignome* pAlignome ) //segment sequence and length
 {
-  alignResNew(palignRes, reflen + 1, seglen + 1);
-
+  nt *pref, *pseg;
+  int reflen, seglen;
+  pref = pAlignome->ref;
+  pseg = pAlignome->seg;
+  reflen = pAlignome->reflen;
+  seglen = pAlignome->seglen;
   int i = 0, j = 0;
   for(;i <= reflen; i++)
-    setScore(palignRes, i ,0, 0);
+    setScore(pAlignome, i ,0, 0);
   for(;j <= seglen; j++)
-    setScore(palignRes, 0 ,j, 0);
+    setScore(pAlignome, 0 ,j, 0);
 
   for(i = 1;i <= reflen; i++)
     {
       for(j = 1;j <= seglen; j++)
 	{
-	  int match =  getScore(palignRes, i-1, j-1) + S[*(pref + i - 1)][*(pseg + j - 1)];
+	  int match =  getScore(pAlignome, i-1, j-1) + S[*(pref + i - 1)][*(pseg + j - 1)];
 	  int delete, insert;
 	  int k = i,l = j, tmp = INT_MIN;
 	  for(; k >= 1; k --)
-	    tmp = getScore(palignRes,i-k,j) + W(k) > tmp ? getScore(palignRes,i-k,j)+W(k):tmp; //W() is gap penalty
+	    tmp = getScore(pAlignome,i-k,j) + W(k) > tmp ? getScore(pAlignome,i-k,j)+W(k):tmp; //W() is gap penalty
 	  delete = tmp;
 	  tmp = INT_MIN;
 	  for(; l >= 1; l--)
-	    tmp = getScore(palignRes,i,j-l) + W(l) > tmp ? getScore(palignRes,i,j-l)+W(l):tmp;
+	    tmp = getScore(pAlignome,i,j-l) + W(l) > tmp ? getScore(pAlignome,i,j-l)+W(l):tmp;
 	  insert = tmp;
 	  int score = 0;
 	  int trace = -1; /* delete */
@@ -151,8 +171,8 @@ void sw(nt* pref,int reflen, //reference sequence and length
 	  score = score > insert ? score : insert;
 	  if(score == insert)
 	    trace = 1;
-	  setScore(palignRes,i,j , score);
-	  setTrace(palignRes,i,j , trace);
+	  setScore(pAlignome,i,j , score);
+	  setTrace(pAlignome,i,j , trace);
 	}
     }
 }
@@ -165,13 +185,13 @@ int main()
   nt seq1[8] = {A,C,A,C,A,C,T,A};
   nt seq2[8] = {A,G,C,A,C,A,C,A};
 
-  alignRes alignResobj;
-  alignResNew(&alignResobj, 9,9);
-  sw(seq1, 8,
-     seq2, 8,
-     &alignResobj);
-  showScore(&alignResobj);
-  showTrace(&alignResobj);
-  alignResDispose(&alignResobj);
+  Alignome Alignomeobj;
+  AlignomeNew(&Alignomeobj,
+	      8,seq1,
+	      8,seq2);
+  sw(&Alignomeobj);
+  showScore(&Alignomeobj);
+  showTrace(&Alignomeobj);
+  AlignomeDispose(&Alignomeobj);
   return(0);    
 }
