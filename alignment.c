@@ -39,10 +39,25 @@ void AlignomeNew(Alignome* pAlignome,
   /* cpy seg and ref */
   int i = 0;
   for(; i < reflen; i++)
-     memcpy(pAlignome->ref + i, ref + i, sizeof(nt));
+    memcpy( pAlignome->ref + i, ref + i, sizeof(nt));
   for(i=0; i < seglen; i++)
-     memcpy(pAlignome->seg + i, seg + i, sizeof(nt));
+    memcpy( pAlignome->seg + i, seg + i, sizeof(nt));
     
+}
+
+void showNt(nt* pnt, int len)
+{
+  char alphabet[] = {'N','A','C','G','G','T'};
+  int i = 0;
+  for(; i < len; i++)
+    fprintf(stdout, "%1c ",alphabet[ (int)(pnt[i]) ]);
+  fprintf(stdout, "\n");
+}
+
+void showSeq(Alignome *pAlignome)
+{
+  showNt(pAlignome->ref, pAlignome->reflen);
+  showNt(pAlignome->seg, pAlignome->seglen);
 }
 
 void AlignomeDispose(Alignome* pAlignome)
@@ -55,32 +70,32 @@ void AlignomeDispose(Alignome* pAlignome)
 
 void setScore(Alignome* pAlignome, int i, int j, int score)
 {
-  assert(i >= 0 && i < pAlignome->reflen);
-  assert(j >= 0 && j < pAlignome->seglen);
+  assert(i >= 0 && i <= pAlignome->reflen);
+  assert(j >= 0 && j <= pAlignome->seglen);
 
   *(pAlignome->score + i*(pAlignome->reflen) + j) = score;
 }
 
 void setTrace(Alignome* pAlignome, int i, int j, int trace)
 {
-  assert(i >= 0 && i < pAlignome->reflen);
-  assert(j >= 0 && j < pAlignome->seglen);
+  assert(i >= 0 && i <= pAlignome->reflen);
+  assert(j >= 0 && j <= pAlignome->seglen);
 
   *(pAlignome->btrace + i*(pAlignome->reflen) + j) = trace;
 }
 
 int getScore(Alignome* pAlignome, int i, int j)
 {
-  assert(i >= 0 && i < pAlignome->reflen);
-  assert(j >= 0 && j < pAlignome->seglen);
+  assert(i >= 0 && i <= pAlignome->reflen);
+  assert(j >= 0 && j <= pAlignome->seglen);
 
   return(*(pAlignome->score + i*(pAlignome->reflen) + j));
 }
 
 int getTrace(Alignome* pAlignome, int i, int j)
 {
-  assert(i >= 0 && i < pAlignome->reflen);
-  assert(j >= 0 && j < pAlignome->seglen);
+  assert(i >= 0 && i <= pAlignome->reflen);
+  assert(j >= 0 && j <= pAlignome->seglen);
 
   return(*(pAlignome->btrace + i*(pAlignome->reflen) + j));
 }
@@ -89,9 +104,9 @@ void showScore(Alignome* pAlignome)
 {
   int i,j;
   fprintf(stdout, "\n");
-  for(i=0;i<pAlignome->reflen;i++)
+  for(i=0;i<=pAlignome->reflen;i++)
     {
-      for(j=0;j<pAlignome->seglen;j++)
+      for(j=0;j<=pAlignome->seglen;j++)
 	fprintf(stdout , "%2i ",getScore(pAlignome, i,j));
       fprintf(stdout,"\n");
     }
@@ -102,9 +117,9 @@ void showTrace(Alignome* pAlignome)
 {
   int i,j;
   fprintf(stdout, "\n");
-  for(i=0;i<pAlignome->reflen;i++)
+  for(i=0;i<=pAlignome->reflen;i++)
     {
-      for(j=0;j<pAlignome->seglen;j++)
+      for(j=0;j<=pAlignome->seglen;j++)
 	{
 	  char tr;
 	  switch(getTrace(pAlignome, i, j))
@@ -126,6 +141,17 @@ void showTrace(Alignome* pAlignome)
       fprintf(stdout,"\n");
     }
   fprintf(stdout, "\n");
+}
+
+void showAlignome(Alignome *pAlignome)
+{
+  fprintf(stdout, "=====Start Alignome=====\n");
+  showSeq(pAlignome);
+  fprintf(stdout, "------------------------\n");
+  showScore(pAlignome);
+  fprintf(stdout, "------------------------\n");
+  showTrace(pAlignome);
+  fprintf(stdout, "======End Alignome======\n");
 }
 
 void showAlignment(Alignome* pAlignome)
@@ -189,9 +215,9 @@ int main()
   AlignomeNew(&Alignomeobj,
 	      8,seq1,
 	      8,seq2);
+  showAlignome(&Alignomeobj);
   sw(&Alignomeobj);
-  showScore(&Alignomeobj);
-  showTrace(&Alignomeobj);
+  showAlignome(&Alignomeobj);
   AlignomeDispose(&Alignomeobj);
   return(0);    
 }
