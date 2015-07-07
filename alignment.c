@@ -154,10 +154,14 @@ void showAlignome(Alignome *pAlignome)
   fprintf(stdout, "======End Alignome======\n");
 }
 
+/* we need a backtrace fxn to recover the alignment */
+void backtrace(Alignome *pAlignome)
+{
+}
+
 void showAlignment(Alignome* pAlignome)
 {
   /* get the largest value */
-  
   /* trace back */
 }
 
