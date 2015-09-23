@@ -1,0 +1,331 @@
+/*think and draft out the vairables and functions before put down the code ....*/
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+#include <limits.h>
+#include "fasta.h"
+
+/*score for match, mismatch and indel*/
+/* u -> matching score, sigma->mismatch */
+#define u 2
+#define sigma -3
+int S[4][4] = { {u,sigma,sigma,sigma},
+		{sigma,u,sigma,sigma},
+		{sigma,sigma,u,sigma},
+		{sigma,sigma,sigma,u}};
+
+#define gapCost -2 
+
+/* define an nucleotide type */
+typedef enum {A,C,G,T} nt_t;
+
+char alpha[] = {'A','C','G','T'};
+
+nt_t* query, *temp;int qlen, tlen;
+
+/* define integer for back trace symbol*/
+#define MATCH 0
+#define INSERT 1
+#define DELETE 2
+
+/*we store the score&btrace symbol in a cell object, which is a matrix cell*/
+typedef struct {
+  int score;
+  int btrace;
+} cell;
+
+/*t: A T T G C - T */
+/*q: A T - G C T T */
+/*q(uery) position 3 is a deletion with respect to t(emplate) while position 6 is a insertion accordingly  */
+
+/* we put temp as columns and query as the rows in mtr*/
+/* btrace for deletion will be -; | for insertion */
+/* here is the logic for determining which one is deletion and which one is insertion:
+   it is related with the temp and query position(temp-row, query-column or temp-column, query-row).
+   here we assume that temp is in column and query is in row. we have the definition that the back trace
+   sign is an indication of the alignment path in the dp matrix.
+   For the alignment example shown above, we can use the number of sequence characters presented in the alignment
+   matrix to describe it:
+   (col)t: 1 2 3 4 5 5 6
+   (row)q: 1 2 2 3 4 5 6
+   as is known that, each path in dp matrix coresponds to an alignment, the thing shows above is the coordination of
+   the best alignment. from this we can get the answer:
+   for a deletion, row index does not change, but col index plus one,you can 
+   imagine this will be a '-' in the dp matrix.
+   For insertion, the situation is just the opposite, col stays but row changes,
+   this is indicated by '|'.
+*/
+
+cell** alignMtr; 
+int init(nt_t* q,int qlen, nt_t* t, int tlen);
+void destroy();
+void Score();
+int backtrace();
+void printscore();
+void printbtrace();
+int c2nt(char c);
+
+/* all variables settle down, let's begin.. */
+
+int main(int argc,char** argv)
+{
+  /*if(argc != 2){
+    fprintf(stderr,"usage: %s fasta.fa\n",argv[0]);
+    return -1;
+    }*/
+  nt_t *t, *q; int tlen, qlen;
+  char *seq;
+  char *name;
+  int L;
+  FASTAFILE *ffp;
+  ffp = OpenFASTA("/home/ewre/Projects/algrithmsc/test.seq");
+  if(ReadFASTA(ffp, &seq,&name, &L)) {
+    if(!(t = malloc(sizeof(nt_t)*L)))
+      return(-1);
+    int idx;
+    for(idx=0;idx<L;idx++)
+      t[idx] = c2nt(seq[idx]);
+    tlen = L;
+    free(seq);
+    free(name);
+  }
+  if(ReadFASTA(ffp, &seq,&name, &L)) {
+    if(!(q = malloc(sizeof(nt_t)*L)))
+      return(-1);
+    int idx;
+    for(idx=0;idx<L;idx++)
+      q[idx] = c2nt(seq[idx]);
+    qlen = L;
+    free(seq);
+    free(name);
+  }
+  CloseFASTA(ffp);
+
+  if(-1 == init(t,tlen, q,qlen)) {
+    destroy();
+    free(q);free(t);
+    return(-1);  
+  };
+  Score();
+  if(-1 == backtrace()) {
+    destroy();
+    free(q);free(t);
+    return(-1);  
+  };
+  destroy();
+  free(q);free(t);
+  return(0);  
+}
+int c2nt(char c)
+{
+  switch(c){
+  case 'A':
+    return 0;
+  case 'C':
+    return 1;
+  case 'G':
+    return 2;
+  case 'T':
+    return 3;
+  case 'a':
+    return 0;
+  case 'c':
+    return 1;
+  case 'g':
+    return 2;
+  case 't':
+    return 3;
+  }
+  return -1;
+}
+
+int init(nt_t* q,int qlen0, nt_t* t, int tlen0) /* init everything */
+{
+  qlen = qlen0; tlen = tlen0;
+  query = (nt_t*)malloc(qlen*sizeof(nt_t));
+  if(!query)
+    return(-1);
+  temp = (nt_t*)malloc(tlen*sizeof(nt_t));
+  if(!temp)
+    return(-1);
+  int idx;
+  for(idx=0;idx<qlen;idx++)
+    assert(memcpy(query+idx, q+idx, sizeof(nt_t)));
+  for(idx=0;idx<tlen;idx++)
+    assert(memcpy(temp+idx , t+idx, sizeof(nt_t)));
+  alignMtr = (cell**)malloc((qlen+1)*sizeof(cell*));
+  if(!alignMtr)
+    return(-1);
+  for(idx=0;idx<=qlen;idx++)
+    alignMtr[idx] = NULL;
+  for(idx=0;idx<=qlen;idx++) {
+    alignMtr[idx] = (cell*)malloc((tlen+1)*sizeof(cell));
+    if(!alignMtr[idx])
+      return(-1);
+    int idy;
+    for(idy=0;idy<=tlen;idy++) {
+      alignMtr[idx][idy].score = INT_MIN;
+      alignMtr[idx][idy].btrace= -1;
+    }
+  }
+
+  /* init first row and col */
+  int irow,icol;
+  for(irow=1;irow<=qlen;irow++) {
+    alignMtr[irow][0].btrace = INSERT;
+    alignMtr[irow][0].score = gapCost * irow;
+  }
+  for(icol=1;icol<=tlen;icol++) {
+    alignMtr[0][icol].btrace = DELETE;
+    alignMtr[0][icol].score = gapCost * icol;
+  }
+  return(0);
+}
+
+int max(int a, int b, int c)
+{
+  int tmp = a >= b? a:b; 
+  return tmp >= c ? tmp:c;
+}
+int which(int a, int b,int c)
+{
+  int mx = max(a,b,c);
+  if(mx == a)
+    return(1);
+  if(mx == b)
+    return(2);
+  if(mx == c)
+    return(3);
+  return(-1);
+}
+
+void Score()
+{
+  int irow, icol;
+
+  for(irow = 1;irow <= qlen;irow++)
+    for(icol = 1;icol <= tlen;icol++)
+      {
+	int match, insert, del;
+	match = alignMtr[irow-1][icol-1].score + S[ query[irow-1] ][ temp[icol-1] ];
+	del = alignMtr[irow][icol-1].score + gapCost;
+	insert = alignMtr[irow-1][icol].score + gapCost;
+	alignMtr[irow][icol].score = max(match,insert,del);
+	switch(which(match,insert,del)) {
+	case 1:
+	  alignMtr[irow][icol].btrace = MATCH;
+	  break;
+	case 2:
+	  alignMtr[irow][icol].btrace = INSERT;
+	  break;
+	case 3:
+	  alignMtr[irow][icol].btrace = DELETE;
+	  break;
+	default:
+	  alignMtr[irow][icol].btrace = -1;
+	}
+      }
+}
+
+#define STACKSIZE 5000
+
+typedef struct {
+  char* pch;
+  int len,pointer;
+} stack;
+
+int initstack(stack *ps)
+{
+  ps->pch=malloc(STACKSIZE*sizeof(char));
+  if(!ps->pch)
+    return(-1);
+  int idx;
+  for(idx=0;idx<STACKSIZE;idx++)
+    ps->pch[idx] = '?';
+  ps->len=STACKSIZE;
+  ps->pointer = 0;
+}
+void freestack(stack *ps)
+{
+  free(ps->pch);
+}
+void printstack(stack *ps)
+{
+  int idx;
+  for(idx=ps->pointer;idx>=0;idx--)
+    fprintf(stdout,"%c ",(ps->pch)[idx]);
+  fprintf(stdout,"\n");
+}
+
+int push(stack* ps,char ch)
+{
+  if(ps->pointer == (ps->len-1) ) {
+    ps->pch = (char*)realloc(ps->pch, 2*(ps->len)*sizeof(char));
+    if(!ps->pch)
+      return(-1);
+    else
+      ps->len *= 2;
+  }
+  assert(memcpy(ps->pch+((ps->pointer)++), &ch,sizeof(char)));
+  return(0);
+}
+int backtrace()
+{
+  int irow,icol;
+  irow = qlen;icol = tlen;
+  stack q,t;
+  if(-1 == initstack(&q) || -1==initstack(&t))
+    return(-1);
+  while(irow != 0 || icol != 0) {
+    switch(alignMtr[irow][icol].btrace) {
+    case MATCH:
+      push(&t,alpha[temp[--icol]]);
+      push(&q,alpha[query[--irow]]);
+      break;
+    case INSERT:
+      push(&t,'-');
+      push(&q,alpha[query[--irow]]);
+      break;
+    case DELETE:
+      push(&q,'-');
+      push(&t,alpha[temp[--icol]]);
+      break;
+    default:
+      fprintf(stderr,"%i %i has unknown btrace sign\n",
+	      irow,icol);
+    }
+  }
+  fprintf(stdout,">>>>>>>>>Alignment:%i>>>>>>>>>>>>\n",alignMtr[qlen][tlen].score);
+  printstack(&t);
+  printstack(&q);
+  fprintf(stdout,"<<<<<<<<<Alignment<<<<<<<<<<<<<<<\n");
+  freestack(&q);freestack(&t);
+  return(0);
+}
+void printscore()
+{
+  int irow,icol;
+  fprintf(stdout, "[printscore]:%i %i\n",qlen,tlen);
+  /*  for(irow = 0;irow <= qlen;irow++){
+      for(icol = 0;icol <= tlen;tlen++)
+      fprintf(stdout,"%i ",alignMtr[irow][icol].score);
+      fprintf(stdout,"\n");
+      }*/
+}
+void printbtrace()
+{
+  int irow,icol;
+  for(irow = 0;irow <= qlen;irow++){
+    for(icol = 0;icol <= tlen;tlen++)
+      fprintf(stdout,"%i ",alignMtr[irow][icol].btrace);
+    fprintf(stdout,"\n");
+  }
+}
+void destroy()
+{
+  free(query);free(temp);
+  int idx;
+  for(idx=0;idx<=qlen;idx++)
+    free(alignMtr[idx]);
+  free(alignMtr);
+}
