@@ -170,6 +170,8 @@ int init(nt_t* q,int qlen0, nt_t* t, int tlen0) /* init everything */
   }
 
   /* init first row and col */
+  alignMtr[0][0].score = 0;
+  alignMtr[0][0].btrace = -1;
   int irow,icol;
   for(irow=1;irow<=qlen;irow++) {
     alignMtr[irow][0].btrace = INSERT;
@@ -252,7 +254,7 @@ void freestack(stack *ps)
 void printstack(stack *ps)
 {
   int idx;
-  for(idx=ps->pointer;idx>=0;idx--)
+  for(idx=ps->pointer-1;idx>=0;idx--)
     fprintf(stdout,"%c ",(ps->pch)[idx]);
   fprintf(stdout,"\n");
 }
