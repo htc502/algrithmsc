@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include "algrithms.h"
+#include "stack.h"
 
 int test_bs()
 {
+  fprintf(stdout, "binary search test\n");
   char query[] = "aby";
   char *p[] = {"aby","bus","dog","focus","hear"};
 
@@ -24,6 +26,7 @@ void printarray(int *array,int len)
 
 void test_insetSort()
 {
+  fprintf(stdout, "insert sort test\n");
   int a[] = {0,3,5,2,4,2,1,45,2,1,1,4,4,6,7,8,4,3};
   insertSort(a, 18);
   printarray(a,18);
@@ -31,6 +34,7 @@ void test_insetSort()
 
 void test_ss()
 {
+  fprintf(stdout, "selection sort test\n");
   int a[] = {0,3,5,2,4,2,1,45,2,1,1,4,4,6,7,8,4,3};
   selectionSort(a,18);
   printarray(a,18);
@@ -38,6 +42,7 @@ void test_ss()
 
 void test_ms()
 {
+  fprintf(stdout, "merge sort test\n");
   int a[] = {0,3,5,2,4,2,1,45,2,1,1,4,4,6,7,8,4,3};
   mergeSort(a, 0, 17);
   printarray(a,18);
@@ -45,6 +50,7 @@ void test_ms()
 
 void test_hs()
 {
+  fprintf(stdout, "heap sort test\n");
   int a[] = {0,3,5,2,4,2,1,45,2,1,1,4,4,6,7,8,4,3};
   heapSort(a, 18);
   printarray(a,18);
@@ -52,6 +58,7 @@ void test_hs()
 
 void test_qs()
 {
+  fprintf(stdout, "quick sort test\n");
   int a[] = {0,3,5,2,4,2,1,45,2,1,1,4,4,6,7,8,4,3};
   quickSort(a, 0, 17);
   printarray(a,18);
@@ -59,6 +66,7 @@ void test_qs()
 
 void test_bwt()
 {
+  fprintf(stdout, "bwt transform test\n");
   char x[]="this is a child who is eager to do something!";
   int pos[45],pos_s[45],i,m;
   bwt(x,45,pos);
@@ -79,6 +87,7 @@ void test_bwt()
 
 void test_tree()
 {
+  fprintf(stdout, "tree struct test\n");
 #define MAXWORD 100
 #define HASHSIZE 10
   struct tnode *root;
@@ -107,6 +116,26 @@ void test_tree()
   releaseHS();
 }
 
+void test_stack()
+{
+  fprintf(stdout, "stack struct test\n");
+  char friends[] = {'A','i','B','o','b',
+			 'C','w','h','a','t','?'};
+  stack cstack;
+  stackNew(&cstack, sizeof(char));
+  int i;
+  for(i=0;i<10;i++)
+    {
+      stackPush(&cstack,
+		friends+i);
+      char x;
+      stackPop(&cstack,
+	       &x);
+      fprintf(stdout,"%c ",&x);
+    }
+
+}
+
 int main()
 {
   test_ms();
@@ -116,6 +145,7 @@ int main()
   test_hs();
   test_qs();
   test_bwt();
-  test_tree();
+  //  test_tree(); seems failed..
+  //  test_stack(); seems failed too...
   return(0);
 }

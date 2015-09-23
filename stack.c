@@ -2,6 +2,7 @@
 /* by guangchun */
 #include "stack.h"
 #include <stdlib.h>
+#include <assert.h>
 
 static void stackGrow(stack* s)
 {
@@ -40,7 +41,7 @@ void stackPop(stack* s,
 	      void* elemAddr)
 {
   //generic coding trick comes again
-  void source = (char*) s-> elems + (s->loglen-1) * s->elemSize;
+  void* source = (char*) s-> elems + (s->loglen-1) * s->elemSize;
 
   memcpy(elemAddr, source, s->elemSize);
   s->loglen--;
