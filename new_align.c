@@ -6,6 +6,8 @@
 #include <string.h>
 #include "fasta.h"
 
+#define LOCAL 1 /* global/local switch*/
+
 /*scoring system:
 u -> matching score, 
 sigma->mismatch penalty,
@@ -24,23 +26,20 @@ int S[4][4] = { {u,sigma,sigma,sigma},
 
 /* define an nucleotide type */
 typedef enum {A,C,G,T} nt_t;
+/* btrace type */
+typedef enum {DELETE,INSERT,MATCH,TERMINATION,UNKNOWN} btrace_t;
 
 char alpha[] = {'A','C','G','T'};
 
 nt_t* query, *temp;int qlen, tlen;
 
-/* define integer for back trace symbol*/
-#define MATCH 0
-#define INSERT 1
-#define DELETE 2
-
-/*we store the score&btrace symbol in a cell object, which is a matrix cell*/
+/*we store the score&btrace symbol in a cell_t object, which is a matrix cell*/
 typedef struct {
   int sH; /*for a horizontal move, deletion I think*/
   int sV; /* vertical move, insertion */
   int score;
-  int btrace;
-} cell;
+  btrace_t btrace;
+} cell_t;
 
 /*t: A T T G C - T */
 /*q: A T - G C T T */
@@ -64,9 +63,9 @@ typedef struct {
    this is indicated by '|'.
 */
 
-typedef cell** Matrix;
+typedef cell_t** Matrix_t;
 
-Matrix M; 
+Matrix_t M; 
 int init(nt_t* q,int qlen, nt_t* t, int tlen);
 void destroy();
 void Score();
@@ -163,13 +162,13 @@ int init(nt_t* q,int qlen0, nt_t* t, int tlen0) /* init everything */
     assert(memcpy(query+idx, q+idx, sizeof(nt_t)));
   for(idx=0;idx<tlen;idx++)
     assert(memcpy(temp+idx , t+idx, sizeof(nt_t)));
-  M = (cell**)malloc((qlen+1)*sizeof(cell*));
+  M = (cell_t**)malloc((qlen+1)*sizeof(cell_t*));
   if(!M)
     return(-1);
   for(idx=0;idx<=qlen;idx++)
     M[idx] = NULL;
   for(idx=0;idx<=qlen;idx++) {
-    M[idx] = (cell*)malloc((tlen+1)*sizeof(cell));
+    M[idx] = (cell_t*)malloc((tlen+1)*sizeof(cell_t));
     if(!M[idx])
       return(-1);
     int idy;
@@ -177,7 +176,7 @@ int init(nt_t* q,int qlen0, nt_t* t, int tlen0) /* init everything */
       M[idx][idy].score = INT_MIN;
       M[idx][idy].sV= INT_MIN;
       M[idx][idy].sH= INT_MIN;
-      M[idx][idy].btrace= -1;
+      M[idx][idy].btrace= UNKNOWN;
     }
   }
 
@@ -185,7 +184,7 @@ int init(nt_t* q,int qlen0, nt_t* t, int tlen0) /* init everything */
   M[0][0].score = 0;
   M[0][0].sV = 0;
   M[0][0].sH = 0;
-  M[0][0].btrace = -1;
+  M[0][0].btrace = TERMINATION;
   int irow,icol;
   for(irow=1;irow<=qlen;irow++) {
     M[irow][0].btrace = INSERT;
@@ -222,7 +221,6 @@ int which(int a, int b,int c)
 void Score()
 {
   int irow, icol;
-
   for(irow = 1;irow <= qlen;irow++)
     for(icol = 1;icol <= tlen;icol++)
       {
@@ -234,19 +232,27 @@ void Score()
 	insert_init  = M[irow-1][icol].score + p + delta;
 	insert_ext = M[irow-1][icol].sV + delta;
 	M[irow][icol].sV = insert_init >= insert_ext ? insert_init : insert_ext;
-	M[irow][icol].score = max(match,M[irow][icol].sV,M[irow][icol].sH);
-	switch(which(match,M[irow][icol].sV,M[irow][icol].sH)) {
-	case 1:
-	  M[irow][icol].btrace = MATCH;
-	  break;
-	case 2:
-	  M[irow][icol].btrace = INSERT;
-	  break;
-	case 3:
-	  M[irow][icol].btrace = DELETE;
-	  break;
-	default:
-	  M[irow][icol].btrace = -1;
+	int tmpMax = max(match,M[irow][icol].sV,M[irow][icol].sH);
+	int wh = which(match,M[irow][icol].sV,M[irow][icol].sH);
+	if(LOCAL && 0 >= tmpMax) {/* only in this situation we need termination...*/
+	  M[irow][icol].score = 0;
+	  M[irow][icol].btrace = TERMINATION;
+	}
+	else {
+	  M[irow][icol].score = tmpMax;
+	  switch(wh) {
+	  case 1:
+	    M[irow][icol].btrace = MATCH;
+	    break;
+	  case 2:
+	    M[irow][icol].btrace = INSERT;
+	    break;
+	  case 3:
+	    M[irow][icol].btrace = DELETE;
+	    break;
+	  default:
+	    M[irow][icol].btrace = UNKNOWN;
+	  }
 	}
       }
 }
@@ -256,9 +262,9 @@ void Score()
 typedef struct {
   char* pch;
   int len,pointer;
-} stack;
+} stack_t;
 
-int initstack(stack *ps)
+int initstack(stack_t *ps)
 {
   ps->pch=malloc(STACKSIZE*sizeof(char));
   if(!ps->pch)
@@ -270,11 +276,11 @@ int initstack(stack *ps)
   ps->pointer = 0;
   return(0);
 }
-void freestack(stack *ps)
+void freestack(stack_t *ps)
 {
   free(ps->pch);
 }
-void printstack(stack *ps)
+void printstack(stack_t *ps)
 {
   int idx;
   for(idx=ps->pointer-1;idx>=0;idx--)
@@ -282,7 +288,7 @@ void printstack(stack *ps)
   fprintf(stdout,"\n");
 }
 
-int push(stack* ps,char ch)
+int push(stack_t* ps,char ch)
 {
   if(ps->pointer == (ps->len-1) ) {
     ps->pch = (char*)realloc(ps->pch, 2*(ps->len)*sizeof(char));
@@ -296,9 +302,12 @@ int push(stack* ps,char ch)
 }
 int backtrace()
 {
+  void bestlocal(int*, int*);
   int irow,icol;
   irow = qlen;icol = tlen;
-  stack q,t;
+  if(LOCAL) 
+    bestlocal(&irow,&icol);
+  stack_t q,t;
   if(-1 == initstack(&q) || -1==initstack(&t))
     return(-1);
   while(irow != 0 || icol != 0) {
@@ -315,8 +324,18 @@ int backtrace()
       push(&q,'-');
       push(&t,alpha[temp[--icol]]);
       break;
+    case TERMINATION: /*we have to stop */
+      irow = 0;
+      icol = 0;
+      break;
+    case UNKNOWN:
+      fprintf(stderr,"%i %i has unknown btrace sign,will terminate\n",
+	      irow,icol);
+      irow = 0;
+      icol = 0;
+      break;
     default:
-      fprintf(stderr,"%i %i has unknown btrace sign\n",
+      fprintf(stderr,"at[%i,%i], something strange happened\n",
 	      irow,icol);
     }
   }
@@ -327,22 +346,38 @@ int backtrace()
   freestack(&q);freestack(&t);
   return(0);
 }
+
+void bestlocal(int* irow, int* icol)
+{
+  int idx,idy;
+  int m = INT_MIN;
+  for(idx=1;idx<=qlen;idx++)
+    for(idy=1;idy<=tlen;idy++) {
+      if(M[idx][idy].score > m) {
+	*irow = idx;
+	*icol = idy;
+	m = M[idx][idy].score;
+      }
+    }
+}
+
 void printscore()
 {
   int irow,icol;
-  fprintf(stdout, "[printscore]:%i %i\n",qlen,tlen);
+  fprintf(stdout, "------------score(nrow:%i-ncol:%i)------------\n",qlen,tlen);
   for(irow = 0;irow <= qlen;irow++){
-    for(icol = 0;icol <= tlen;tlen++)
-      fprintf(stdout,"%i ",M[irow][icol].score);
+    for(icol = 0;icol <= tlen;icol++)
+      fprintf(stdout,"%2i ",M[irow][icol].score);
     fprintf(stdout,"\n");
   }
 }
 void printbtrace()
 {
   int irow,icol;
+  fprintf(stdout, "------------btrace(nrow:%i-ncol:%i)------------\n",qlen,tlen);
   for(irow = 0;irow <= qlen;irow++){
-    for(icol = 0;icol <= tlen;tlen++)
-      fprintf(stdout,"%i ",M[irow][icol].btrace);
+    for(icol = 0;icol <= tlen;icol++)
+      fprintf(stdout,"%2i ",M[irow][icol].btrace);
     fprintf(stdout,"\n");
   }
 }
