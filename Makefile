@@ -1,5 +1,5 @@
 obj = new_align.o fasta.o
-CFLAGS = -Wall -g -o0
+CFLAGS = -Wall -g -o2
 nw: $(obj)
 	cc  -o nw $(obj)
 new_align.o : fasta.h

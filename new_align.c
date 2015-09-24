@@ -3,10 +3,14 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <limits.h>
+#include <string.h>
 #include "fasta.h"
 
-/*score for match, mismatch and indel*/
-/* u -> matching score, sigma->mismatch */
+/*scoring system:
+u -> matching score, 
+sigma->mismatch penalty,
+delta for indel penalty*/
+
 #define u 2
 #define sigma -3
 int S[4][4] = { {u,sigma,sigma,sigma},
@@ -14,7 +18,7 @@ int S[4][4] = { {u,sigma,sigma,sigma},
 		{sigma,sigma,u,sigma},
 		{sigma,sigma,sigma,u}};
 
-#define gapCost -2 
+#define delta -2 
 
 /* define an nucleotide type */
 typedef enum {A,C,G,T} nt_t;
@@ -56,7 +60,9 @@ typedef struct {
    this is indicated by '|'.
 */
 
-cell** alignMtr; 
+typedef cell** Matrix;
+
+Matrix M; 
 int init(nt_t* q,int qlen, nt_t* t, int tlen);
 void destroy();
 void Score();
@@ -153,33 +159,33 @@ int init(nt_t* q,int qlen0, nt_t* t, int tlen0) /* init everything */
     assert(memcpy(query+idx, q+idx, sizeof(nt_t)));
   for(idx=0;idx<tlen;idx++)
     assert(memcpy(temp+idx , t+idx, sizeof(nt_t)));
-  alignMtr = (cell**)malloc((qlen+1)*sizeof(cell*));
-  if(!alignMtr)
+  M = (cell**)malloc((qlen+1)*sizeof(cell*));
+  if(!M)
     return(-1);
   for(idx=0;idx<=qlen;idx++)
-    alignMtr[idx] = NULL;
+    M[idx] = NULL;
   for(idx=0;idx<=qlen;idx++) {
-    alignMtr[idx] = (cell*)malloc((tlen+1)*sizeof(cell));
-    if(!alignMtr[idx])
+    M[idx] = (cell*)malloc((tlen+1)*sizeof(cell));
+    if(!M[idx])
       return(-1);
     int idy;
     for(idy=0;idy<=tlen;idy++) {
-      alignMtr[idx][idy].score = INT_MIN;
-      alignMtr[idx][idy].btrace= -1;
+      M[idx][idy].score = INT_MIN;
+      M[idx][idy].btrace= -1;
     }
   }
 
   /* init first row and col */
-  alignMtr[0][0].score = 0;
-  alignMtr[0][0].btrace = -1;
+  M[0][0].score = 0;
+  M[0][0].btrace = -1;
   int irow,icol;
   for(irow=1;irow<=qlen;irow++) {
-    alignMtr[irow][0].btrace = INSERT;
-    alignMtr[irow][0].score = gapCost * irow;
+    M[irow][0].btrace = INSERT;
+    M[irow][0].score = delta * irow;
   }
   for(icol=1;icol<=tlen;icol++) {
-    alignMtr[0][icol].btrace = DELETE;
-    alignMtr[0][icol].score = gapCost * icol;
+    M[0][icol].btrace = DELETE;
+    M[0][icol].score = delta * icol;
   }
   return(0);
 }
@@ -209,22 +215,22 @@ void Score()
     for(icol = 1;icol <= tlen;icol++)
       {
 	int match, insert, del;
-	match = alignMtr[irow-1][icol-1].score + S[ query[irow-1] ][ temp[icol-1] ];
-	del = alignMtr[irow][icol-1].score + gapCost;
-	insert = alignMtr[irow-1][icol].score + gapCost;
-	alignMtr[irow][icol].score = max(match,insert,del);
+	match = M[irow-1][icol-1].score + S[ query[irow-1] ][ temp[icol-1] ];
+	del = M[irow][icol-1].score + delta;
+	insert = M[irow-1][icol].score + delta;
+	M[irow][icol].score = max(match,insert,del);
 	switch(which(match,insert,del)) {
 	case 1:
-	  alignMtr[irow][icol].btrace = MATCH;
+	  M[irow][icol].btrace = MATCH;
 	  break;
 	case 2:
-	  alignMtr[irow][icol].btrace = INSERT;
+	  M[irow][icol].btrace = INSERT;
 	  break;
 	case 3:
-	  alignMtr[irow][icol].btrace = DELETE;
+	  M[irow][icol].btrace = DELETE;
 	  break;
 	default:
-	  alignMtr[irow][icol].btrace = -1;
+	  M[irow][icol].btrace = -1;
 	}
       }
 }
@@ -246,6 +252,7 @@ int initstack(stack *ps)
     ps->pch[idx] = '?';
   ps->len=STACKSIZE;
   ps->pointer = 0;
+  return(0);
 }
 void freestack(stack *ps)
 {
@@ -279,7 +286,7 @@ int backtrace()
   if(-1 == initstack(&q) || -1==initstack(&t))
     return(-1);
   while(irow != 0 || icol != 0) {
-    switch(alignMtr[irow][icol].btrace) {
+    switch(M[irow][icol].btrace) {
     case MATCH:
       push(&t,alpha[temp[--icol]]);
       push(&q,alpha[query[--irow]]);
@@ -297,7 +304,7 @@ int backtrace()
 	      irow,icol);
     }
   }
-  fprintf(stdout,">>>>>>>>>Alignment:%i>>>>>>>>>>>>\n",alignMtr[qlen][tlen].score);
+  fprintf(stdout,">>>>>>>>>Alignment:%i>>>>>>>>>>>>\n",M[qlen][tlen].score);
   printstack(&t);
   printstack(&q);
   fprintf(stdout,"<<<<<<<<<Alignment<<<<<<<<<<<<<<<\n");
@@ -308,18 +315,18 @@ void printscore()
 {
   int irow,icol;
   fprintf(stdout, "[printscore]:%i %i\n",qlen,tlen);
-  /*  for(irow = 0;irow <= qlen;irow++){
-      for(icol = 0;icol <= tlen;tlen++)
-      fprintf(stdout,"%i ",alignMtr[irow][icol].score);
-      fprintf(stdout,"\n");
-      }*/
+  for(irow = 0;irow <= qlen;irow++){
+    for(icol = 0;icol <= tlen;tlen++)
+      fprintf(stdout,"%i ",M[irow][icol].score);
+    fprintf(stdout,"\n");
+  }
 }
 void printbtrace()
 {
   int irow,icol;
   for(irow = 0;irow <= qlen;irow++){
     for(icol = 0;icol <= tlen;tlen++)
-      fprintf(stdout,"%i ",alignMtr[irow][icol].btrace);
+      fprintf(stdout,"%i ",M[irow][icol].btrace);
     fprintf(stdout,"\n");
   }
 }
@@ -328,6 +335,6 @@ void destroy()
   free(query);free(temp);
   int idx;
   for(idx=0;idx<=qlen;idx++)
-    free(alignMtr[idx]);
-  free(alignMtr);
+    free(M[idx]);
+  free(M);
 }
