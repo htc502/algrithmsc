@@ -9,7 +9,8 @@
 /*scoring system:
 u -> matching score, 
 sigma->mismatch penalty,
-delta for indel penalty*/
+delta for indel penalty,also for gap extension,
+p for gap opening penalty*/
 
 #define u 2
 #define sigma -3
@@ -19,6 +20,7 @@ int S[4][4] = { {u,sigma,sigma,sigma},
 		{sigma,sigma,sigma,u}};
 
 #define delta -2 
+#define p -2
 
 /* define an nucleotide type */
 typedef enum {A,C,G,T} nt_t;
@@ -34,6 +36,8 @@ nt_t* query, *temp;int qlen, tlen;
 
 /*we store the score&btrace symbol in a cell object, which is a matrix cell*/
 typedef struct {
+  int sH; /*for a horizontal move, deletion I think*/
+  int sV; /* vertical move, insertion */
   int score;
   int btrace;
 } cell;
@@ -171,21 +175,29 @@ int init(nt_t* q,int qlen0, nt_t* t, int tlen0) /* init everything */
     int idy;
     for(idy=0;idy<=tlen;idy++) {
       M[idx][idy].score = INT_MIN;
+      M[idx][idy].sV= INT_MIN;
+      M[idx][idy].sH= INT_MIN;
       M[idx][idy].btrace= -1;
     }
   }
 
   /* init first row and col */
   M[0][0].score = 0;
+  M[0][0].sV = 0;
+  M[0][0].sH = 0;
   M[0][0].btrace = -1;
   int irow,icol;
   for(irow=1;irow<=qlen;irow++) {
     M[irow][0].btrace = INSERT;
     M[irow][0].score = delta * irow;
+    M[irow][0].sH = M[irow][0].score;
+    M[irow][0].sV = INT_MIN; /* m[irow][0].sV should be NA, because there's no way to move with | or \ to get here*/
   }
   for(icol=1;icol<=tlen;icol++) {
     M[0][icol].btrace = DELETE;
     M[0][icol].score = delta * icol;
+    M[0][icol].sV = M[0][icol].score;
+    M[0][icol].sH = INT_MIN; /* see reason above*/
   }
   return(0);
 }
@@ -214,12 +226,16 @@ void Score()
   for(irow = 1;irow <= qlen;irow++)
     for(icol = 1;icol <= tlen;icol++)
       {
-	int match, insert, del;
+	int match, insert_init,insert_ext,  del_init, del_ext;
 	match = M[irow-1][icol-1].score + S[ query[irow-1] ][ temp[icol-1] ];
-	del = M[irow][icol-1].score + delta;
-	insert = M[irow-1][icol].score + delta;
-	M[irow][icol].score = max(match,insert,del);
-	switch(which(match,insert,del)) {
+	del_init = M[irow][icol-1].score + p + delta;
+	del_ext = M[irow][icol-1].sH + delta;
+	M[irow][icol].sH = del_init >= del_ext ? del_init : del_ext;
+	insert_init  = M[irow-1][icol].score + p + delta;
+	insert_ext = M[irow-1][icol].sV + delta;
+	M[irow][icol].sV = insert_init >= insert_ext ? insert_init : insert_ext;
+	M[irow][icol].score = max(match,M[irow][icol].sV,M[irow][icol].sH);
+	switch(which(match,M[irow][icol].sV,M[irow][icol].sH)) {
 	case 1:
 	  M[irow][icol].btrace = MATCH;
 	  break;
