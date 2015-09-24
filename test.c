@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include "algrithms.h"
+#include "fasta.h"
 #include "stack.h"
+#include "new_align.h"
 
 int test_bs()
 {
@@ -136,6 +138,41 @@ void test_stack()
 
 }
 
+void test_align()
+{
+  nt_t *t, *q; int tlen, qlen;
+  char *seq;
+  char *name;
+  int L;
+  FASTAFILE *ffp;
+  ffp = OpenFASTA("./test.seq");
+  if(ReadFASTA(ffp, &seq,&name, &L)) {
+    if(!(t = (nt_t*)malloc(sizeof(nt_t)*L)))
+      return(-1);
+    int idx;
+    for(idx=0;idx<L;idx++)
+      t[idx] = c2nt(seq[idx]);
+    tlen = L;
+    free(seq);
+    free(name);
+  }
+  if(ReadFASTA(ffp, &seq,&name, &L)) {
+    if(!(q = (nt_t*)malloc(sizeof(nt_t)*L)))
+      return(-1);
+    int idx;
+    for(idx=0;idx<L;idx++)
+      q[idx] = c2nt(seq[idx]);
+    qlen = L;
+    free(seq);
+    free(name);
+  }
+  CloseFASTA(ffp);
+  if(-1 == doAlign(t,tlen,q,qlen,1))
+    fprintf(stdout,"doAlign failed\n");
+  free(q);free(t);
+  return(0);
+}
+
 int main()
 {
   test_ms();
@@ -147,5 +184,6 @@ int main()
   test_bwt();
   //  test_tree(); seems failed..
   //  test_stack(); seems failed too...
+  test_align();
   return(0);
 }

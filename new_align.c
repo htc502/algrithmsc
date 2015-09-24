@@ -4,9 +4,9 @@
 #include <assert.h>
 #include <limits.h>
 #include <string.h>
-#include "fasta.h"
+#include "new_align.h"
 
-#define LOCAL 1 /* global/local switch*/
+static int local = 1;/* global/local switch: 0-global;local otherwise*/
 
 /*scoring system:
 u -> matching score, 
@@ -16,7 +16,7 @@ p for gap opening penalty*/
 
 #define u 2
 #define sigma -3
-int S[4][4] = { {u,sigma,sigma,sigma},
+static int S[4][4] = { {u,sigma,sigma,sigma},
 		{sigma,u,sigma,sigma},
 		{sigma,sigma,u,sigma},
 		{sigma,sigma,sigma,u}};
@@ -24,49 +24,15 @@ int S[4][4] = { {u,sigma,sigma,sigma},
 #define delta -2 
 #define p -2
 
-/* define an nucleotide type */
-typedef enum {A,C,G,T} nt_t;
-/* btrace type */
-typedef enum {DELETE,INSERT,MATCH,TERMINATION,UNKNOWN} btrace_t;
+/* character set */
+static char alpha[] = {'A','C','G','T'};
 
-char alpha[] = {'A','C','G','T'};
+/* global variable */
+static nt_t* query, *temp;
+static int qlen, tlen;
+static Matrix_t M; 
 
-nt_t* query, *temp;int qlen, tlen;
-
-/*we store the score&btrace symbol in a cell_t object, which is a matrix cell*/
-typedef struct {
-  int sH; /*for a horizontal move, deletion I think*/
-  int sV; /* vertical move, insertion */
-  int score;
-  btrace_t btrace;
-} cell_t;
-
-/*t: A T T G C - T */
-/*q: A T - G C T T */
-/*q(uery) position 3 is a deletion with respect to t(emplate) while position 6 is a insertion accordingly  */
-
-/* we put temp as columns and query as the rows in mtr*/
-/* btrace for deletion will be -; | for insertion */
-/* here is the logic for determining which one is deletion and which one is insertion:
-   it is related with the temp and query position(temp-row, query-column or temp-column, query-row).
-   here we assume that temp is in column and query is in row. we have the definition that the back trace
-   sign is an indication of the alignment path in the dp matrix.
-   For the alignment example shown above, we can use the number of sequence characters presented in the alignment
-   matrix to describe it:
-   (col)t: 1 2 3 4 5 5 6
-   (row)q: 1 2 2 3 4 5 6
-   as is known that, each path in dp matrix coresponds to an alignment, the thing shows above is the coordination of
-   the best alignment. from this we can get the answer:
-   for a deletion, row index does not change, but col index plus one,you can 
-   imagine this will be a '-' in the dp matrix.
-   For insertion, the situation is just the opposite, col stays but row changes,
-   this is indicated by '|'.
-*/
-
-typedef cell_t** Matrix_t;
-
-Matrix_t M; 
-int init(nt_t* q,int qlen, nt_t* t, int tlen);
+int init(nt_t* q,int qlen, nt_t* t, int tlen,int parlocal);
 void destroy();
 void Score();
 int backtrace();
@@ -76,53 +42,18 @@ int c2nt(char c);
 
 /* all variables settle down, let's begin.. */
 
-int main(int argc,char** argv)
+int doAlign(nt_t* t, int partlen, nt_t* q, int parqlen, int parlocal)
 {
-  /*if(argc != 2){
-    fprintf(stderr,"usage: %s fasta.fa\n",argv[0]);
-    return -1;
-    }*/
-  nt_t *t, *q; int tlen, qlen;
-  char *seq;
-  char *name;
-  int L;
-  FASTAFILE *ffp;
-  ffp = OpenFASTA("/home/ewre/Projects/algrithmsc/test.seq");
-  if(ReadFASTA(ffp, &seq,&name, &L)) {
-    if(!(t = malloc(sizeof(nt_t)*L)))
-      return(-1);
-    int idx;
-    for(idx=0;idx<L;idx++)
-      t[idx] = c2nt(seq[idx]);
-    tlen = L;
-    free(seq);
-    free(name);
-  }
-  if(ReadFASTA(ffp, &seq,&name, &L)) {
-    if(!(q = malloc(sizeof(nt_t)*L)))
-      return(-1);
-    int idx;
-    for(idx=0;idx<L;idx++)
-      q[idx] = c2nt(seq[idx]);
-    qlen = L;
-    free(seq);
-    free(name);
-  }
-  CloseFASTA(ffp);
-
-  if(-1 == init(t,tlen, q,qlen)) {
+  if(-1 == init(t,partlen, q,parqlen, parlocal)) {
     destroy();
-    free(q);free(t);
     return(-1);  
   };
   Score();
   if(-1 == backtrace()) {
     destroy();
-    free(q);free(t);
     return(-1);  
   };
   destroy();
-  free(q);free(t);
   return(0);  
 }
 int c2nt(char c)
@@ -148,7 +79,7 @@ int c2nt(char c)
   return -1;
 }
 
-int init(nt_t* q,int qlen0, nt_t* t, int tlen0) /* init everything */
+int init(nt_t* q,int qlen0, nt_t* t, int tlen0, int parlocal) /* init everything */
 {
   qlen = qlen0; tlen = tlen0;
   query = (nt_t*)malloc(qlen*sizeof(nt_t));
@@ -198,6 +129,7 @@ int init(nt_t* q,int qlen0, nt_t* t, int tlen0) /* init everything */
     M[0][icol].sV = M[0][icol].score;
     M[0][icol].sH = INT_MIN; /* see reason above*/
   }
+  local = parlocal;
   return(0);
 }
 
@@ -234,7 +166,7 @@ void Score()
 	M[irow][icol].sV = insert_init >= insert_ext ? insert_init : insert_ext;
 	int tmpMax = max(match,M[irow][icol].sV,M[irow][icol].sH);
 	int wh = which(match,M[irow][icol].sV,M[irow][icol].sH);
-	if(LOCAL && 0 >= tmpMax) {/* only in this situation we need termination...*/
+	if(local && 0 >= tmpMax) {/* only in this situation we need termination...*/
 	  M[irow][icol].score = 0;
 	  M[irow][icol].btrace = TERMINATION;
 	}
@@ -256,13 +188,6 @@ void Score()
 	}
       }
 }
-
-#define STACKSIZE 5000
-
-typedef struct {
-  char* pch;
-  int len,pointer;
-} stack_t;
 
 int initstack(stack_t *ps)
 {
@@ -305,7 +230,7 @@ int backtrace()
   void bestlocal(int*, int*);
   int irow,icol;
   irow = qlen;icol = tlen;
-  if(LOCAL) 
+  if(local) 
     bestlocal(&irow,&icol);
   stack_t q,t;
   if(-1 == initstack(&q) || -1==initstack(&t))
