@@ -1,18 +1,13 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "algrithms.h"
 
-struct tnode {
-  char *word;
-  int count;
-  int lvl;
-  struct tnode *left;
-  struct tnode *right;
-};
-
-struct tnode *addtree(struct tnode *p, char *w,int lvl)
+node_t *addtree(node_t *p, char *w,int lvl)
 {
   int cond;
   char *strdup_KR(char *s);
-  struct tnode *talloc();
+  node_t *talloc();
 
   if (p == NULL) {
     p = talloc();
@@ -36,18 +31,18 @@ struct tnode *addtree(struct tnode *p, char *w,int lvl)
   return p;
 
 }
-void trdestry(struct tnode* root)
+void treefree(node_t* root)
 {
-  struct tnode *left,*right;
+  struct node_t *left,*right;
   if((left=root->left) != NULL)
-    trdestry(left);
+    treefree(left);
   if((right=root->right) != NULL)
-    trdestry(right);
+    treefree(right);
   free(root->word);
   free(root);
 }
 
-void treeprint(struct tnode *p)
+void treeprint(node_t *p)
 {
   if(p != NULL) 
     {
@@ -65,9 +60,9 @@ char *strdup_KR(char *s)
     strcpy(p,s);
   return p;
 }
-struct tnode *talloc(void)
+node_t *talloc(void)
 {
-  return (struct tnode*) malloc(sizeof(struct tnode));
+  return (node_t*) malloc(sizeof(node_t));
 }
 /*getch_KR and ungetch_KR*/
 #define BUFSIZE 100
@@ -114,14 +109,8 @@ int getword(char *word,int lim)
 
 }
 	
-struct nlist {
-  struct nlist *next;
-  char *name;
-  char *defn;
-};
-
 #define HASHSIZE 10
-static struct nlist *hashtab[HASHSIZE];
+static nlist_t *hashtab[HASHSIZE];
 
 unsigned hash(char *s)
 {
@@ -132,9 +121,9 @@ unsigned hash(char *s)
   return hashval % HASHSIZE;
 }
 
-struct nlist *lookup(char *s)
+nlist_t *lookup(char *s)
 {
-  struct nlist *np;
+  nlist_t *np;
 
   for(np=hashtab[hash(s)];np != NULL; np=np->next)
     if(strcmp(np->name,s) == 0)
@@ -142,28 +131,28 @@ struct nlist *lookup(char *s)
   return NULL;
 }
 
-struct nlist *install(char *name, char *defn)
+nlist_t *install(char *name, char *defn)
 {
-  struct nlist *np;
+  nlist_t *np;
   unsigned hashval;
 
   if((np=lookup(name)) == NULL) {
-    np =(struct nlist *) malloc(sizeof(*np));
-    if(np == NULL || (np->name = strdup(name)) == NULL)
+    np =(nlist_t *) malloc(sizeof(*np));
+    if(np == NULL || (np->name = strdup_KR(name)) == NULL)
       return NULL;
     hashval = hash(name);
     np->next = hashtab[hashval];
     hashtab[hashval] = np;
   } else
     free((void *) np->defn);
-  if((np->defn = strdup(defn)) == NULL)
+  if((np->defn = strdup_KR(defn)) == NULL)
     return NULL;
   return np;
 
 }
 
-/* release the entire nlist */
-void rnlist(struct nlist *pn)
+/* release the entire nlist_t */
+void rnlist(nlist_t *pn)
 {
   if(pn == NULL)
     return;
@@ -185,9 +174,9 @@ void releaseHS(){
 }
 
 /* undef one nlist element */
-struct nlist *undef(char *s)
+nlist_t *undef(char *s)
 {
-  struct nlist *np,*np_pre;
+  nlist_t *np,*np_pre;
   for(np=hashtab[hash(s)];np!=NULL;np=np->next){
     if(strcmp(s,np->name) == 0){
       np_pre->next = np->next;
@@ -202,13 +191,13 @@ struct nlist *undef(char *s)
   return NULL;
 }
 
-void printnlist(struct nlist* np)
+void printnlist(nlist_t* np)
 {
   if(np == NULL)
     return;
   char *n="NULL";
   printf("(%s---%s)",(np->name != NULL? np->name:n),(np->defn != NULL? np->defn:n));
-  struct nlist* mp;
+  nlist_t* mp;
   for(mp=np->next;mp!=NULL;mp=mp->next) 
     printf("->(%s---%s)",(mp->name!=NULL?mp->name:n),(mp->defn != NULL? mp->defn:n));
   return;

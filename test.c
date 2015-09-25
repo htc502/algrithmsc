@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "algrithms.h"
 #include "fasta.h"
 #include "stack.h"
@@ -90,9 +91,11 @@ void test_bwt()
 void test_tree()
 {
   fprintf(stdout, "tree struct test\n");
+  fprintf(stdout, "attention!!!this test need input from prompt..\n");
+  fprintf(stdout, "enter something finish with Ctrl-D\n");
 #define MAXWORD 100
 #define HASHSIZE 10
-  struct tnode *root;
+  node_t*root;
   char word[MAXWORD];
   static struct nlist *hashtab[HASHSIZE];
 
@@ -103,7 +106,7 @@ void test_tree()
 	root = addtree(root,word,0);
     }
   treeprint(root);
-  trdestry(root);
+  treefree(root);
   int i=0;
   for(i=0;i<HASHSIZE;i++) {
     hashtab[i]=NULL;
@@ -116,6 +119,7 @@ void test_tree()
     }
   printHS(hashtab,HASHSIZE);
   releaseHS();
+  fprintf(stdout,"tree test exit...\n");
 }
 
 void test_stack()
@@ -133,13 +137,15 @@ void test_stack()
       char x;
       stackPop(&cstack,
 	       &x);
-      fprintf(stdout,"%c ",&x);
+      fprintf(stdout,"%c ",x);
     }
+  fprintf(stdout,"\n");
 
 }
 
-void test_align()
+int test_align()
 {
+  fprintf(stdout, "nw sw align test\n");
   nt_t *t, *q; int tlen, qlen;
   char *seq;
   char *name;
@@ -182,8 +188,8 @@ int main()
   test_hs();
   test_qs();
   test_bwt();
-  //  test_tree(); seems failed..
-  //  test_stack(); seems failed too...
+    test_tree();
+    test_stack();
   test_align();
   return(0);
 }

@@ -2,6 +2,7 @@
 /* by guangchun */
 #include "stack.h"
 #include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 
 static void stackGrow(stack* s)
