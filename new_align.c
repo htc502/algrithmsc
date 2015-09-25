@@ -15,14 +15,14 @@ delta for indel penalty,also for gap extension,
 p for gap opening penalty*/
 
 #define u 2
-#define sigma -3
+#define sigma -5
 static int S[4][4] = { {u,sigma,sigma,sigma},
 		{sigma,u,sigma,sigma},
 		{sigma,sigma,u,sigma},
 		{sigma,sigma,sigma,u}};
 
 #define delta -2 
-#define p -2
+#define p -10
 
 /* character set */
 static char alpha[] = {'A','C','G','T'};
