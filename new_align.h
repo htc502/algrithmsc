@@ -38,12 +38,12 @@ typedef struct {
 
 typedef cell_t** Matrix_t;
 
-#define STACKSIZE 5000
+/*#define STACKSIZE 5000
 
 typedef struct {
   char* pch;
   int len,pointer;
-} stack_t;
+  } stack_t; */
 
 
 int doAlign(nt_t* t, int, nt_t* q, int);

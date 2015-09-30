@@ -5,14 +5,14 @@
 #include <string.h>
 #include <assert.h>
 
-static void stackGrow(stack* s)
+static void stackGrow(stack_t* s)
 {
   s->alloclen *= 2;
   s->elems = realloc(s->elems,
 		     s->alloclen * s->elemSize);
 }
 
-void stackNew(stack* s, int elemSize)
+void stackNew(stack_t* s, int elemSize)
 {
   assert(elemSize > 0);
   s->elemSize = elemSize;
@@ -22,12 +22,12 @@ void stackNew(stack* s, int elemSize)
   assert(s->elems != NULL);
 }
 
-void stackDispose(stack* s)
+void stackDispose(stack_t* s)
 {
   free(s->elems);
 }
 
-void stackPush(stack* s, void* elemAddr)
+void stackPush(stack_t* s, void* elemAddr)
 {
   if(s->loglen == s->alloclen)
     stackGrow(s);
@@ -38,7 +38,7 @@ void stackPush(stack* s, void* elemAddr)
   s->loglen++;
 }
 
-void stackPop(stack* s,
+void stackPop(stack_t* s,
 	      void* elemAddr)
 {
   //generic coding trick comes again

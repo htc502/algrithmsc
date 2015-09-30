@@ -6,13 +6,13 @@ typedef struct {
   int elemSize;
   int loglen;
   int alloclen;
-} stack;
+} stack_t;
 
-void stackNew(stack* s, int elemSize);
-void stackDispose(stack* s);
-void stackPush(stack* s,
+void stackNew(stack_t* s, int elemSize);
+void stackDispose(stack_t* s);
+void stackPush(stack_t* s,
 	       void* elemAddr);
-void stackPop(stack* s,
+void stackPop(stack_t* s,
 	      void* elemAddr);
 
 #endif

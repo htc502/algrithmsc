@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <limits.h>
 #include <string.h>
+#include "stack.h"
 #include "new_align.h"
 #include "ini.h"
 
@@ -39,8 +40,6 @@ int init(nt_t* q,int qlen, nt_t* t, int tlen);
 void destroy();
 void Score();
 int backtrace();
-void printscore();
-void printbtrace();
 int c2nt(char c);
 
 /* all variables settle down, let's begin.. */
@@ -281,65 +280,46 @@ void Score()
       }
 }
 
-int initstack(stack_t *ps)
-{
-  ps->pch=malloc(STACKSIZE*sizeof(char));
-  if(!ps->pch)
-    return(-1);
-  int idx;
-  for(idx=0;idx<STACKSIZE;idx++)
-    ps->pch[idx] = '?';
-  ps->len=STACKSIZE;
-  ps->pointer = 0;
-  return(0);
-}
-void freestack(stack_t *ps)
-{
-  free(ps->pch);
-}
 void printstack(stack_t *ps)
 {
   int idx;
-  for(idx=ps->pointer-1;idx>=0;idx--)
-    fprintf(stdout,"%c ",(ps->pch)[idx]);
-  fprintf(stdout,"\n");
+  for(idx=ps->loglen-1;idx>=0;idx--)
+    fprintf(stdout,"%c ",*((char*)(ps->elems + idx*ps->elemSize))); /* we know that its a char stack */
 }
 
-int push(stack_t* ps,char ch)
-{
-  if(ps->pointer == (ps->len-1) ) {
-    ps->pch = (char*)realloc(ps->pch, 2*(ps->len)*sizeof(char));
-    if(!ps->pch)
-      return(-1);
-    else
-      ps->len *= 2;
-  }
-  assert(memcpy(ps->pch+((ps->pointer)++), &ch,sizeof(char)));
-  return(0);
-}
 int backtrace()
 {
   void bestlocal(int*, int*);
   int irow,icol;
-  irow = qlen;icol = tlen;
-  if(local) 
+  int qstop,tstop; /* qstop,tstop for print local alignment */
+  qstop = irow = qlen;tstop = icol = tlen;
+
+  if(local) { 
     bestlocal(&irow,&icol);
+    qstop=irow;tstop=icol;
+  }
   stack_t q,t;
-  if(-1 == initstack(&q) || -1==initstack(&t))
-    return(-1);
+  stackNew(&q,sizeof(char));stackNew(&t,sizeof(char));
+
+  char tmp, ext;
+  ext = '-';
   while(irow != 0 || icol != 0) {
     switch(M[irow][icol].btrace) {
     case MATCH:
-      push(&t,alpha[temp[--icol]]);
-      push(&q,alpha[query[--irow]]);
+      tmp = alpha[temp[--icol]];
+      stackPush(&t,&tmp);
+      tmp = alpha[query[--irow]];
+      stackPush(&q,&tmp);
       break;
     case INSERT:
-      push(&t,'-');
-      push(&q,alpha[query[--irow]]);
+      stackPush(&t,&ext);
+      tmp = alpha[query[--irow]];
+      stackPush(&q,&tmp);
       break;
     case DELETE:
-      push(&q,'-');
-      push(&t,alpha[temp[--icol]]);
+      stackPush(&q,&ext);
+      tmp = alpha[temp[--icol]];
+      stackPush(&t,&tmp);
       break;
     case TERMINATION: /*we have to stop */
       irow = 0;
@@ -357,10 +337,16 @@ int backtrace()
     }
   }
   fprintf(stdout,">>>>>>>>>Alignment:%i>>>>>>>>>>>>\n",M[qlen][tlen].score);
+  if(local)
+    fprintf(stdout,"%d-%d\n",tstop-t.loglen + 1,tstop);
   printstack(&t);
+  fprintf(stdout,"\n",qstop);
   printstack(&q);
+  fprintf(stdout,"\n",qstop);
+  if(local)
+    fprintf(stdout,"%d-%d\n",qstop-q.loglen + 1,qstop);
   fprintf(stdout,"<<<<<<<<<Alignment<<<<<<<<<<<<<<<\n");
-  freestack(&q);freestack(&t);
+  stackDispose(&q);stackDispose(&t);
   return(0);
 }
 
@@ -378,26 +364,6 @@ void bestlocal(int* irow, int* icol)
     }
 }
 
-void printscore()
-{
-  int irow,icol;
-  fprintf(stdout, "------------score(nrow:%i-ncol:%i)------------\n",qlen,tlen);
-  for(irow = 0;irow <= qlen;irow++){
-    for(icol = 0;icol <= tlen;icol++)
-      fprintf(stdout,"%2i ",M[irow][icol].score);
-    fprintf(stdout,"\n");
-  }
-}
-void printbtrace()
-{
-  int irow,icol;
-  fprintf(stdout, "------------btrace(nrow:%i-ncol:%i)------------\n",qlen,tlen);
-  for(irow = 0;irow <= qlen;irow++){
-    for(icol = 0;icol <= tlen;icol++)
-      fprintf(stdout,"%2i ",M[irow][icol].btrace);
-    fprintf(stdout,"\n");
-  }
-}
 void destroy()
 {
   free(query);free(temp);

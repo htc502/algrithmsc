@@ -125,25 +125,25 @@ void test_tree()
 void test_stack()
 {
   fprintf(stdout, "stack struct test\n");
-  char friends[] = {'A','i','B','o','b',
-			 'C','w','h','a','t','?'};
-  stack cstack;
-  stackNew(&cstack, sizeof(char));
+  char* friends[] = {"Aog","loi","Boy","oops","big",
+			 "Cowmax","whistle","herp","atom","tax","?what"};
+  stack_t cstack;
+  stackNew(&cstack, sizeof(char*));
   int i;
   for(i=0;i<10;i++)
     {
       stackPush(&cstack,
 		friends+i);
-      char x;
+      char* x;
       stackPop(&cstack,
 	       &x);
-      fprintf(stdout,"%c ",x);
+      fprintf(stdout,"%s ",x);
     }
   fprintf(stdout,"\n");
 
 }
 
-int test_align()
+ int test_align()
 {
   fprintf(stdout, "nw sw align test\n");
   nt_t *t, *q; int tlen, qlen;
@@ -177,19 +177,19 @@ int test_align()
     fprintf(stdout,"doAlign failed\n");
   free(q);free(t);
   return(0);
-}
+  } 
 
 int main()
 {
-  /*  test_ms();
+  test_ms();
   test_ss();
   test_insetSort();
   test_bs();
   test_hs();
   test_qs();
   test_bwt();
-    test_tree();
-    test_stack();*/
-  test_align();
+  //test_tree();
+    //  test_stack();
+    test_align();
   return(0);
 }
