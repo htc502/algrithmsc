@@ -5,25 +5,27 @@
 #include <limits.h>
 #include <string.h>
 #include "new_align.h"
+#include "ini.h"
 
 static int local = 1;/* global/local switch: 0-global;local otherwise*/
 
 /*scoring system:
-u -> matching score, 
-sigma->mismatch penalty,
-delta for indel penalty,also for gap extension,
-p for gap opening penalty*/
+  u -> matching score, 
+  sigma->mismatch penalty,
+  delta for indel penalty,also for gap extension,
+  p for gap opening penalty*/
+char* fini = "/home/ewre/Projects/algrithmsc/config.ini"; /* scoring system can be redefined with this file */
 
-#define u 2
-#define sigma -5
-static int S[4][4] = { {u,sigma,sigma,sigma},
-		{sigma,u,sigma,sigma},
-		{sigma,sigma,u,sigma},
-		{sigma,sigma,sigma,u}};
+static int u = 2;
+static int delta = -2;
+static int p = -10;
+static int sigma = -5;
+/* static int S[4][4] = { {u,sigma,sigma,sigma},
+   {sigma,u,sigma,sigma},
+   {sigma,sigma,u,sigma},
+   {sigma,sigma,sigma,u}}; */
 
-#define delta -2 
-#define p -10
-
+static int S[4][4];
 /* character set */
 static char alpha[] = {'A','C','G','T'};
 
@@ -32,7 +34,8 @@ static nt_t* query, *temp;
 static int qlen, tlen;
 static Matrix_t M; 
 
-int init(nt_t* q,int qlen, nt_t* t, int tlen,int parlocal);
+void read_config();
+int init(nt_t* q,int qlen, nt_t* t, int tlen);
 void destroy();
 void Score();
 int backtrace();
@@ -42,9 +45,11 @@ int c2nt(char c);
 
 /* all variables settle down, let's begin.. */
 
-int doAlign(nt_t* t, int partlen, nt_t* q, int parqlen, int parlocal)
+int doAlign(nt_t* t, int partlen, nt_t* q, int parqlen)
 {
-  if(-1 == init(t,partlen, q,parqlen, parlocal)) {
+  void read_config();
+  read_config();
+  if(-1 == init(t,partlen, q,parqlen)) {
     destroy();
     return(-1);  
   };
@@ -79,7 +84,53 @@ int c2nt(char c)
   return -1;
 }
 
-int init(nt_t* q,int qlen0, nt_t* t, int tlen0, int parlocal) /* init everything */
+
+typedef struct {
+  int local;
+  int p, u, sigma, delta;
+} config_t;
+
+#define MATCH(s,n) strcmp(section,s) == 0 && strcmp(name,n) ==0
+static int handler(void* pconf,
+		   const char* section,
+		   const char* name,
+		   const char* value)
+{
+  config_t* p = (config_t*) pconf;
+  if(MATCH("type", "local"))
+    p->local = atoi(value);
+  else if(MATCH("scoring", "u"))
+    p->u = atoi(value);
+  else if(MATCH("scoring", "delta"))
+    p->delta = atoi(value);
+  else if(MATCH("scoring", "p"))
+    p->p = atoi(value);
+  else if(MATCH("scoring", "sigma"))
+    p->sigma = atoi(value);
+  else
+    return 0;/* unknown name/section error */
+  return 1;
+}
+
+
+void read_config()
+{
+  config_t config; 
+  if(ini_parse(fini, handler, &config) < 0)
+    fprintf(stderr, "problem loading config.ini,use default\n");
+  else {
+    local = config.local;
+    u = config.u; delta = config.delta; p = config.p; sigma = config.sigma;
+  }
+  int irow,icol,idx;
+  for(irow=0;irow < 4;irow++)
+    for(icol=0;icol< 4;icol++)
+      S[irow][icol] = sigma;
+  for(idx=0;idx<4;idx++)
+    S[idx][idx] = u;
+}
+
+int init(nt_t* q,int qlen0, nt_t* t, int tlen0) /* init sequence and alignment matrix */
 {
   qlen = qlen0; tlen = tlen0;
   query = (nt_t*)malloc(qlen*sizeof(nt_t));
@@ -129,18 +180,20 @@ int init(nt_t* q,int qlen0, nt_t* t, int tlen0, int parlocal) /* init everything
     M[0][icol].sV = M[0][icol].score;
     M[0][icol].sH = INT_MIN; /* see reason above*/
   }
-  local = parlocal;
   return(0);
 }
-
-int max(int a, int b, int c)
+int max2(int a, int b)
+{
+  return a >= b ? a:b;
+}
+int max3(int a, int b, int c)
 {
   int tmp = a >= b? a:b; 
   return tmp >= c ? tmp:c;
 }
-int which(int a, int b,int c)
+int which_max3(int a, int b,int c)
 {
-  int mx = max(a,b,c);
+  int mx = max3(a,b,c);
   if(mx == a)
     return(1);
   if(mx == b)
@@ -149,28 +202,67 @@ int which(int a, int b,int c)
     return(3);
   return(-1);
 }
-
+int max4(int a, int b, int c ,int d)
+{
+  int tmp1, tmp2;
+  tmp1 = max2(a,b);
+  tmp2 = max2(c,d);
+  return tmp1 >= tmp2 ? tmp1:tmp2;
+}
+int which_max4(int a, int b,int c,int d)
+{
+  int mx = max4(a,b,c,d);
+  if(mx == a)
+    return(1);
+  if(mx == b)
+    return(2);
+  if(mx == c)
+    return(3);
+  if(mx == d)
+    return(4);
+  return(-1);
+}
 void Score()
 {
   int irow, icol;
   for(irow = 1;irow <= qlen;irow++)
     for(icol = 1;icol <= tlen;icol++)
       {
-	int match, insert_init,insert_ext,  del_init, del_ext;
+	int match,insert, insert_init,insert_ext,del,del_init, del_ext;
 	match = M[irow-1][icol-1].score + S[ query[irow-1] ][ temp[icol-1] ];
 	del_init = M[irow][icol-1].score + p + delta;
 	del_ext = M[irow][icol-1].sH + delta;
-	M[irow][icol].sH = del_init >= del_ext ? del_init : del_ext;
+	del = max2(del_init, del_ext);
+	M[irow][icol].sH = del;
 	insert_init  = M[irow-1][icol].score + p + delta;
 	insert_ext = M[irow-1][icol].sV + delta;
-	M[irow][icol].sV = insert_init >= insert_ext ? insert_init : insert_ext;
-	int tmpMax = max(match,M[irow][icol].sV,M[irow][icol].sH);
-	int wh = which(match,M[irow][icol].sV,M[irow][icol].sH);
-	if(local && 0 >= tmpMax) {/* only in this situation we need termination...*/
-	  M[irow][icol].score = 0;
-	  M[irow][icol].btrace = TERMINATION;
+	insert = max2(insert_init, insert_ext);
+	M[irow][icol].sV = insert;
+	int s_hijk = M[0][0].score + 0; /* s_hijk for source hijack, see AIBA p183, this enables the local alignment */
+	if(local) {
+	  int tmpMax = max4(match, insert, del, s_hijk);
+	  M[irow][icol].score = tmpMax;
+	  int wh = which_max4(match, insert, del, s_hijk);
+	  switch(wh) {
+	  case 1:
+	    M[irow][icol].btrace = MATCH;
+	    break;
+	  case 2:
+	    M[irow][icol].btrace = INSERT;
+	    break;
+	  case 3:
+	    M[irow][icol].btrace = DELETE;
+	    break;
+	  case 4:
+	    M[irow][icol].btrace = TERMINATION;
+	    break;
+	  default:
+	    M[irow][icol].btrace = UNKNOWN;
+	  }
 	}
 	else {
+	  int tmpMax = max3(match,insert,del);
+	  int wh = which_max3(match,insert,del);
 	  M[irow][icol].score = tmpMax;
 	  switch(wh) {
 	  case 1:

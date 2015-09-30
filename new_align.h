@@ -46,5 +46,5 @@ typedef struct {
 } stack_t;
 
 
-int doAlign(nt_t* t, int, nt_t* q, int, int );
+int doAlign(nt_t* t, int, nt_t* q, int);
 #endif

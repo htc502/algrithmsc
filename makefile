@@ -1,4 +1,5 @@
-obj = binSearch.o insertSort.o mergeSort.o selectionSort.o test.o heapSort.o quickSort.o bwt.o tree.o stack.o new_align.o fasta.o
+obj = binSearch.o insertSort.o mergeSort.o selectionSort.o test.o heapSort.o quickSort.o bwt.o tree.o stack.o new_align.o fasta.o ini.o
+CFLAGS = -g -o2
 test: $(obj)
 	cc -o test $(obj)
 test.o: algrithms.h stack.h new_align.h fasta.h
@@ -12,7 +13,8 @@ bwt.o: bwt.c
 tree.o: tree.c
 stack.o: stack.c
 fasta.o: fasta.c
-new_align.o: new_align.c
+new_align.o: new_align.c ini.h
+ini.o: ini.c
 
 .PHONY:clean
 clean:

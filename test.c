@@ -151,7 +151,7 @@ int test_align()
   char *name;
   int L;
   FASTAFILE *ffp;
-  ffp = OpenFASTA("./test.seq");
+  ffp = OpenFASTA("/home/ewre/Projects/algrithmsc/test.seq");
   if(ReadFASTA(ffp, &seq,&name, &L)) {
     if(!(t = (nt_t*)malloc(sizeof(nt_t)*L)))
       return(-1);
@@ -173,7 +173,7 @@ int test_align()
     free(name);
   }
   CloseFASTA(ffp);
-  if(-1 == doAlign(t,tlen,q,qlen,1))
+  if(-1 == doAlign(t,tlen,q,qlen))
     fprintf(stdout,"doAlign failed\n");
   free(q);free(t);
   return(0);
@@ -181,7 +181,7 @@ int test_align()
 
 int main()
 {
-  test_ms();
+  /*  test_ms();
   test_ss();
   test_insetSort();
   test_bs();
@@ -189,7 +189,7 @@ int main()
   test_qs();
   test_bwt();
     test_tree();
-    test_stack();
+    test_stack();*/
   test_align();
   return(0);
 }
