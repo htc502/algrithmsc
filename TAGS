@@ -1,0 +1,255 @@
+
+#binSearch.c#,14
+int bs(4,157
+
+#stack.c#,122
+static void stackGrow(8,180
+void stackNew(15,309
+void stackDispose(25,507
+void stackPush(30,564
+void stackPop(41,819
+
+LICENSE.txt,750
+Redistribution and use in source and binary forms,7,114
+modification,8,181
+      notice,10,326
+      notice,12,466
+EXPRESS OR IMPLIED WARRANTIES,19,866
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING,19,866
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,19,866
+DIRECT,22,1068
+DIRECT, INDIRECT,22,1068
+DIRECT, INDIRECT, INCIDENTAL,22,1068
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL,22,1068
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,22,1068
+LOSS OF USE, DATA, OR PROFITS;24,1220
+ON ANY THEORY OF LIABILITY,25,1296
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,25,1296
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,25,1296
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT25,1296
+
+algrithms.h,337
+#define ALGRITHM_C_H2,22
+typedef struct node_t 4,46
+  char *word;word5,71
+  int count;6,86
+  int lvl;7,100
+  struct node_t *left;left8,112
+  struct node_t *right;right9,136
+} node_t;10,161
+typedef struct nlist_t 12,174
+  struct nlist_t *next;next13,200
+  char *name;name14,225
+  char *defn;defn15,240
+} nlist_t;16,255
+
+binSearch.c,14
+int bs(4,160
+
+bwt.c,75
+  static char prtchr[prtchr3,45
+void bwt(14,530
+void sortstring(27,841
+
+config.ini,44
+local=2,7
+u=4,55
+sigma=5,73
+delta=6,100
+
+fasta.c,76
+OpenFASTA(102,4667
+ReadFASTA(115,5001
+CloseFASTA(167,6449
+main(195,7437
+
+fasta.h,136
+#define FASTA_MAXLINE 9,195
+typedef struct fastafile_s 11,276
+  FILE *fp;fp12,305
+  char  buffer[buffer13,317
+} FASTAFILE;14,348
+
+heapSort.c,127
+int parent(4,44
+int left(9,103
+int right(14,169
+void max_heapify(19,212
+void  build_max_heap(44,780
+void heapSort(54,971
+
+hgc_stack.c,122
+static void stackGrow(8,184
+void stackNew(15,313
+void stackDispose(25,511
+void stackPush(30,568
+void stackPop(41,823
+
+hgc_stack.c~,122
+static void stackGrow(8,180
+void stackNew(15,305
+void stackDispose(25,499
+void stackPush(30,552
+void stackPop(41,803
+
+hgc_stack.h,134
+#define HGC_STACK_H2,20
+  void *elems;elems5,58
+  int elemSize;6,73
+  int loglen;7,89
+  int alloclen;8,103
+} hgc_stack_t;9,119
+
+ini.c,304
+#define _CRT_SECURE_NO_WARNINGS11,195
+#define MAX_SECTION 24,359
+#define MAX_NAME 25,382
+static char* rstrip(28,477
+static char* lskip(37,692
+static char* find_char_or_comment(47,1014
+static char* strncpy0(58,1337
+int ini_parse_stream(66,1520
+int ini_parse_file(170,4557
+int ini_parse(176,4735
+
+ini.h,287
+#define __INI_H__11,197
+typedef int (*ini_handler)ini_handler21,383
+typedef char* (*ini_reader)ini_reader25,569
+#define INI_ALLOW_MULTILINE 55,2106
+#define INI_ALLOW_BOM 61,2310
+#define INI_USE_STACK 66,2424
+#define INI_STOP_ON_FIRST_ERROR 71,2552
+#define INI_MAX_LINE 76,2667
+
+insertSort.c,24
+void insertSort(12,614
+
+makefile,449
+obj 1,0
+CFLAGS 2,141
+test:test3,158
+test.o:test.o5,192
+binSearch.o:binSearch.o6,245
+insertSort.o:insertSort.o7,271
+mergeSort.o:mergeSort.o8,299
+selectionSort.o:selectionSort.o9,325
+heapSort.o:heapSort.o10,359
+quickSort.o:quickSort.o11,383
+bwt.o:bwt.o12,409
+tree.o:tree.o13,423
+hgc_stack.o:hgc_stack.o14,439
+fasta.o:fasta.o15,465
+new_align.o:new_align.o16,483
+ini.o:ini.o17,515
+.PHONY:.PHONY19,531
+clean:clean20,545
+
+mergeSort.c,42
+void merge(5,199
+void mergeSort(31,1002
+
+new_align.c,838
+static int local 11,245
+char* fini 18,467
+static int u 20,579
+static int delta 21,597
+static int p 22,620
+static int sigma 23,640
+static int S[S29,795
+static char alpha[alpha31,835
+static nt_t* query,34,899
+static nt_t* query, *temp;temp34,899
+static int qlen,35,926
+static int qlen, tlen;35,926
+static Matrix_t M;36,949
+int doAlign(47,1151
+int c2nt(63,1432
+  int local;88,1710
+  int p,89,1723
+  int p, u,89,1723
+  int p, u, sigma,89,1723
+  int p, u, sigma, delta;89,1723
+} config_t;90,1749
+#define MATCH(92,1762
+static int handler(93,1826
+void read_config(115,2338
+int init(132,2763
+int max2(184,4241
+int max3(188,4291
+int which_max3(193,4378
+int max4(204,4542
+int which_max4(211,4676
+void Score(224,4877
+void printstack(283,6390
+int backtrace(290,6580
+void bestlocal(353,8149
+void destroy(367,8387
+
+new_align.h,599
+#define NEW_ALIGN_H2,20
+typedef enum {A,A5,73
+typedef enum {A,C,5,73
+typedef enum {A,C,G,5,73
+typedef enum {A,C,G,T}T5,73
+typedef enum {A,C,G,T} nt_t;5,73
+typedef enum {DELETE,DELETE7,120
+typedef enum {DELETE,INSERT,7,120
+typedef enum {DELETE,INSERT,MATCH,7,120
+typedef enum {DELETE,INSERT,MATCH,TERMINATION,7,120
+typedef enum {DELETE,INSERT,MATCH,TERMINATION,UNKNOWN}UNKNOWN7,120
+typedef enum {DELETE,INSERT,MATCH,TERMINATION,UNKNOWN} btrace_t;7,120
+  int sH;11,283
+  int sV;12,337
+  int score;13,378
+  btrace_t btrace;14,391
+} cell_t;15,410
+typedef cell_t** Matrix_t;39,1647
+
+quickSort.c,43
+int partition(2,17
+void quickSort(23,350
+
+selectionSort.c,25
+void selectionSort(3,22
+
+test.c,326
+int test_bs(8,135
+void printarray(19,357
+void test_insetSort(30,515
+void test_ss(38,684
+void test_ms(46,851
+void test_hs(54,1014
+void test_qs(62,1172
+void test_bwt(70,1335
+void test_tree(91,1712
+#define MAXWORD 96,1907
+#define HASHSIZE 97,1928
+void test_stack(125,2510
+ int test_align(146,2948
+int main(182,3777
+
+tree.c,550
+node_t *addtree(addtree6,88
+void treefree(34,863
+void treeprint(45,1078
+char *strdup_KR(strdup_KR54,1251
+node_t *talloc(talloc63,1381
+#define BUFSIZE 68,1482
+char buf[buf70,1505
+int bufp 71,1525
+int getch_KR(73,1542
+void ungetch_KR(77,1614
+int getword(85,1750
+#define HASHSIZE 112,2193
+static nlist_t *hashtab[hashtab113,2214
+unsigned hash(115,2252
+nlist_t *lookup(lookup124,2402
+nlist_t *install(install134,2573
+void rnlist(155,3060
+void releaseHS(168,3265
+nlist_t 177,3419
+void printnlist(194,3779
+void printHS(206,4109
+
+test.seq,0

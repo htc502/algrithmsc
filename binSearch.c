@@ -1,4 +1,5 @@
 #include<stdio.h>
+#include<string.h>
 /* bs query query against against,len is the length of against, be sure that against is sorted in a/descending order */
 int bs(char* query, char** against,int len) //bs for binary search
 {

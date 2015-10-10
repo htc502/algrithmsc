@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <limits.h>
 #include <string.h>
-#include "stack.h"
+#include "hgc_stack.h"
 #include "new_align.h"
 #include "ini.h"
 
@@ -280,7 +280,7 @@ void Score()
       }
 }
 
-void printstack(stack_t *ps)
+void printstack(hgc_stack_t *ps)
 {
   int idx;
   for(idx=ps->loglen-1;idx>=0;idx--)
@@ -298,7 +298,7 @@ int backtrace()
     bestlocal(&irow,&icol);
     qstop=irow;tstop=icol;
   }
-  stack_t q,t;
+  hgc_stack_t q,t;
   stackNew(&q,sizeof(char));stackNew(&t,sizeof(char));
 
   char tmp, ext;
@@ -340,9 +340,9 @@ int backtrace()
   if(local)
     fprintf(stdout,"%d-%d\n",tstop-t.loglen + 1,tstop);
   printstack(&t);
-  fprintf(stdout,"\n",qstop);
+  fprintf(stdout,"\n");
   printstack(&q);
-  fprintf(stdout,"\n",qstop);
+  fprintf(stdout,"\n");
   if(local)
     fprintf(stdout,"%d-%d\n",qstop-q.loglen + 1,qstop);
   fprintf(stdout,"<<<<<<<<<Alignment<<<<<<<<<<<<<<<\n");

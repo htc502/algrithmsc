@@ -1,8 +1,9 @@
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "algrithms.h"
 #include "fasta.h"
-#include "stack.h"
+#include "hgc_stack.h"
 #include "new_align.h"
 
 int test_bs()
@@ -90,6 +91,7 @@ void test_bwt()
 
 void test_tree()
 {
+  int getword(char*, int);
   fprintf(stdout, "tree struct test\n");
   fprintf(stdout, "attention!!!this test need input from prompt..\n");
   fprintf(stdout, "enter something finish with Ctrl-D\n");
@@ -127,7 +129,7 @@ void test_stack()
   fprintf(stdout, "stack struct test\n");
   char* friends[] = {"Aog","loi","Boy","oops","big",
 			 "Cowmax","whistle","herp","atom","tax","?what"};
-  stack_t cstack;
+  hgc_stack_t cstack;
   stackNew(&cstack, sizeof(char*));
   int i;
   for(i=0;i<10;i++)
@@ -145,13 +147,14 @@ void test_stack()
 
  int test_align()
 {
+  int c2nt(char);
   fprintf(stdout, "nw sw align test\n");
   nt_t *t, *q; int tlen, qlen;
   char *seq;
   char *name;
   int L;
   FASTAFILE *ffp;
-  ffp = OpenFASTA("/home/ewre/Projects/algrithmsc/test.seq");
+  ffp = OpenFASTA("/Users/hanguangchun/Projects/algrithmsc/test.seq");
   if(ReadFASTA(ffp, &seq,&name, &L)) {
     if(!(t = (nt_t*)malloc(sizeof(nt_t)*L)))
       return(-1);

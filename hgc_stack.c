@@ -1,18 +1,18 @@
 /* code implementation note of programming paradigm from Jerry Cain, stanford */
 /* by guangchun */
-#include "stack.h"
+#include "hgc_stack.h"
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 
-static void stackGrow(stack_t* s)
+static void stackGrow(hgc_stack_t* s)
 {
   s->alloclen *= 2;
   s->elems = realloc(s->elems,
 		     s->alloclen * s->elemSize);
 }
 
-void stackNew(stack_t* s, int elemSize)
+void stackNew(hgc_stack_t* s, int elemSize)
 {
   assert(elemSize > 0);
   s->elemSize = elemSize;
@@ -22,12 +22,12 @@ void stackNew(stack_t* s, int elemSize)
   assert(s->elems != NULL);
 }
 
-void stackDispose(stack_t* s)
+void stackDispose(hgc_stack_t* s)
 {
   free(s->elems);
 }
 
-void stackPush(stack_t* s, void* elemAddr)
+void stackPush(hgc_stack_t* s, void* elemAddr)
 {
   if(s->loglen == s->alloclen)
     stackGrow(s);
@@ -38,7 +38,7 @@ void stackPush(stack_t* s, void* elemAddr)
   s->loglen++;
 }
 
-void stackPop(stack_t* s,
+void stackPop(hgc_stack_t* s,
 	      void* elemAddr)
 {
   //generic coding trick comes again
