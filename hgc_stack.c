@@ -17,6 +17,7 @@ void stackNew(hgc_stack_t* s, int elemSize)
   assert(elemSize > 0);
   s->elemSize = elemSize;
   s->loglen = 0;
+  s->n_nt = 0;
   s->alloclen = 4;
   s->elems = malloc( 4* elemSize);
   assert(s->elems != NULL);
@@ -36,6 +37,8 @@ void stackPush(hgc_stack_t* s, void* elemAddr)
 
   memcpy(target, elemAddr, s->elemSize);
   s->loglen++;
+  if(*(char*)elemAddr != '-')
+    s->n_nt++;
 }
 
 void stackPop(hgc_stack_t* s,
@@ -46,4 +49,6 @@ void stackPop(hgc_stack_t* s,
 
   memcpy(elemAddr, source, s->elemSize);
   s->loglen--;
+  if(*(char*)elemAddr != '-')
+    s->n_nt--;
 }

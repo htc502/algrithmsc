@@ -4,9 +4,12 @@
 #include <assert.h>
 #include <limits.h>
 #include <string.h>
+#include <unistd.h>
 #include "hgc_stack.h"
 #include "new_align.h"
 #include "ini.h"
+
+#define MAXLEN 2000
 
 static int local = 1;/* global/local switch: 0-global;local otherwise*/
 
@@ -15,18 +18,13 @@ static int local = 1;/* global/local switch: 0-global;local otherwise*/
   sigma->mismatch penalty,
   delta for indel penalty,also for gap extension,
   p for gap opening penalty*/
-char* fini = "/home/ewre/Projects/algrithmsc/config.ini"; /* scoring system can be redefined with this file */
 
-static int u = 2;
-static int delta = -2;
-static int p = -10;
-static int sigma = -5;
-/* static int S[4][4] = { {u,sigma,sigma,sigma},
-   {sigma,u,sigma,sigma},
-   {sigma,sigma,u,sigma},
-   {sigma,sigma,sigma,u}}; */
-
+static int u;
+static int delta;
+static int p;
+static int sigma;
 static int S[4][4];
+
 /* character set */
 static char alpha[] = {'A','C','G','T'};
 
@@ -35,7 +33,7 @@ static nt_t* query, *temp;
 static int qlen, tlen;
 static Matrix_t M; 
 
-void read_config();
+void scoringSys_init();
 int init(nt_t* q,int qlen, nt_t* t, int tlen);
 void destroy();
 void Score();
@@ -46,8 +44,8 @@ int c2nt(char c);
 
 int doAlign(nt_t* t, int partlen, nt_t* q, int parqlen)
 {
-  void read_config();
-  read_config();
+  void scoringSys_init();
+  scoringSys_init();
   if(-1 == init(t,partlen, q,parqlen)) {
     destroy();
     return(-1);  
@@ -112,21 +110,41 @@ static int handler(void* pconf,
 }
 
 
-void read_config()
+void scoringSys_init()
 {
-  config_t config; 
-  if(ini_parse(fini, handler, &config) < 0)
-    fprintf(stderr, "problem loading config.ini,use default\n");
-  else {
-    local = config.local;
-    u = config.u; delta = config.delta; p = config.p; sigma = config.sigma;
-  }
+  /* default scoring system */
+  u = 2;delta = -2;p = -10; sigma = -5;
   int irow,icol,idx;
   for(irow=0;irow < 4;irow++)
     for(icol=0;icol< 4;icol++)
       S[irow][icol] = sigma;
   for(idx=0;idx<4;idx++)
     S[idx][idx] = u;
+
+  char* basenm= "config.ini"; /* scoring system can be redefined with this file */
+  char* fini=(char*) malloc(sizeof(char)*MAXLEN);
+  fini = getcwd(fini,MAXLEN);
+  if(fini == NULL) {
+    fprintf(stderr, "problem loading config.ini(file path too long?),use default\n");
+    free(fini);
+    return;
+  }
+  strcat(fini,"/");
+  strcat(fini, basenm); 
+  config_t config; 
+  if(ini_parse(fini, handler, &config) < 0) 
+    fprintf(stderr, "problem loading config.ini,use default\n");
+  else {
+    local = config.local;
+    u = config.u; delta = config.delta; p = config.p; sigma = config.sigma;
+    int irow,icol,idx;
+    for(irow=0;irow < 4;irow++)
+      for(icol=0;icol< 4;icol++)
+	S[irow][icol] = sigma;
+    for(idx=0;idx<4;idx++)
+      S[idx][idx] = u;
+  }
+  free(fini);
 }
 
 int init(nt_t* q,int qlen0, nt_t* t, int tlen0) /* init sequence and alignment matrix */
@@ -167,23 +185,76 @@ int init(nt_t* q,int qlen0, nt_t* t, int tlen0) /* init sequence and alignment m
   M[0][0].sH = 0;
   M[0][0].btrace = TERMINATION;
   int irow,icol;
+  int insert, insert_init, insert_ext, del, del_init,del_ext;
+  int s_hijk = M[0][0].score + 0; /* see intr of s_hijk in Score function */
+  int max2(int,int);
+  int which_max2(int,int);
   for(irow=1;irow<=qlen;irow++) {
-    M[irow][0].btrace = INSERT;
-    M[irow][0].score = delta * irow;
-    M[irow][0].sH = M[irow][0].score;
-    M[irow][0].sV = INT_MIN; /* m[irow][0].sV should be NA, because there's no way to move with | or \ to get here*/
+    insert_init = M[irow-1][0].score + p + delta;
+    insert_ext = M[irow-1][0].sV + delta;
+    insert = max2(insert_init, insert_ext);
+    M[irow][0].sV = insert;
+    M[irow][0].sH = INT_MIN; /* m[irow][0].sV should be NA, because there's no way to move there with | or \ */
+    if(local) {
+      int tmpMax = max2(insert, s_hijk); 
+      M[irow][0].score = tmpMax;
+      int wh = which_max2(insert, s_hijk);
+      switch(wh) {
+      case 1:
+	M[irow][0].btrace = INSERT;
+	break;
+      case 2:
+	M[irow][0].btrace = TERMINATION;
+	break;
+      default:
+	M[irow][0].btrace = UNKNOWN;
+      }
+    }
+    else {
+      M[irow][0].score = insert;
+      M[irow][0].btrace = INSERT;
+    }
   }
   for(icol=1;icol<=tlen;icol++) {
-    M[0][icol].btrace = DELETE;
-    M[0][icol].score = delta * icol;
-    M[0][icol].sV = M[0][icol].score;
-    M[0][icol].sH = INT_MIN; /* see reason above*/
+    del_init = M[0][icol-1].score + p + delta;
+    del_ext = M[0][icol-1].sH + delta;
+    del = max2(del_init, del_ext);
+    M[0][icol].sH = del;
+    M[0][icol].sV = INT_MIN; /* see reason above*/
+    if(local) {
+      int tmpMax = max2(del, s_hijk);
+      M[0][icol].score = tmpMax;
+      int wh = which_max2(del, s_hijk);
+      switch(wh) {
+      case 1:
+	M[0][icol].btrace = DELETE;
+	break;
+      case 2:
+	M[0][icol].btrace = TERMINATION;
+	break;
+      default:
+	M[0][icol].btrace = UNKNOWN;
+      }
+    }
+    else {
+      M[0][icol].btrace = DELETE;
+      M[0][icol].score = del;
+    }
   }
   return(0);
 }
 int max2(int a, int b)
 {
   return a >= b ? a:b;
+}
+int which_max2(int a, int b)
+{
+  int mx = max2(a,b);
+  if(mx == a)
+    return(1);
+  if(mx == b)
+    return(2);
+  return(-1);
 }
 int max3(int a, int b, int c)
 {
@@ -338,13 +409,13 @@ int backtrace()
   }
   fprintf(stdout,">>>>>>>>>Alignment:%i>>>>>>>>>>>>\n",M[qlen][tlen].score);
   if(local)
-    fprintf(stdout,"%d-%d\n",tstop-t.loglen + 1,tstop);
+    fprintf(stdout,"%d-%d\n",tstop-t.n_nt + 1,tstop);
   printstack(&t);
   fprintf(stdout,"\n");
   printstack(&q);
   fprintf(stdout,"\n");
   if(local)
-    fprintf(stdout,"%d-%d\n",qstop-q.loglen + 1,qstop);
+    fprintf(stdout,"%d-%d\n",qstop-q.n_nt + 1,qstop);
   fprintf(stdout,"<<<<<<<<<Alignment<<<<<<<<<<<<<<<\n");
   stackDispose(&q);stackDispose(&t);
   return(0);

@@ -6,6 +6,7 @@ typedef struct {
   int elemSize;
   int loglen;
   int alloclen;
+  int n_nt; /* non - nucleotides count */
 } hgc_stack_t;
 
 void stackNew(hgc_stack_t* s, int elemSize);
