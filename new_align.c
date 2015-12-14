@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <limits.h>
+#include <float.h>
 #include <string.h>
 #include <unistd.h>
 #include "hgc_stack.h"
@@ -10,20 +11,21 @@
 #include "ini.h"
 
 #define MAXLEN 2000
+#define MY_MIN (INT_MIN/2)
 
-static int local = 1;/* global/local switch: 0-global;local otherwise*/
+static int local = 1 ;/* global/local switch: 0-global;local otherwise*/
 
 /*scoring system:
   u -> matching score, 
   sigma->mismatch penalty,
-  delta for indel penalty,also for gap extension,
+  delta for also for gap extension,
   p for gap opening penalty*/
 
-static int u;
-static int delta;
-static int p;
-static int sigma;
-static int S[4][4];
+static float u;
+static float delta;
+static float p;
+static float sigma;
+static float S[4][4];
 
 /* character set */
 static char alpha[] = {'A','C','G','T'};
@@ -113,7 +115,7 @@ static int handler(void* pconf,
 void scoringSys_init()
 {
   /* default scoring system */
-  u = 2;delta = -2;p = -10; sigma = -5;
+  u = 5;delta = -1;p = -10; sigma = -4;
   int irow,icol,idx;
   for(irow=0;irow < 4;irow++)
     for(icol=0;icol< 4;icol++)
@@ -172,9 +174,9 @@ int init(nt_t* q,int qlen0, nt_t* t, int tlen0) /* init sequence and alignment m
       return(-1);
     int idy;
     for(idy=0;idy<=tlen;idy++) {
-      M[idx][idy].score = INT_MIN;
-      M[idx][idy].sV= INT_MIN;
-      M[idx][idy].sH= INT_MIN;
+      M[idx][idy].score = MY_MIN;
+      M[idx][idy].sV= MY_MIN;
+      M[idx][idy].sH= MY_MIN;
       M[idx][idy].btrace= UNKNOWN;
     }
   }
@@ -185,18 +187,18 @@ int init(nt_t* q,int qlen0, nt_t* t, int tlen0) /* init sequence and alignment m
   M[0][0].sH = 0;
   M[0][0].btrace = TERMINATION;
   int irow,icol;
-  int insert, insert_init, insert_ext, del, del_init,del_ext;
-  int s_hijk = M[0][0].score + 0; /* see intr of s_hijk in Score function */
-  int max2(int,int);
-  int which_max2(int,int);
+  float insert, insert_init, insert_ext, del, del_init,del_ext;
+  float s_hijk = M[0][0].score + 0; /* see intr of s_hijk in Score function */
+  float max2(float,float);
+  int which_max2(float,float);
   for(irow=1;irow<=qlen;irow++) {
     insert_init = M[irow-1][0].score + p + delta;
     insert_ext = M[irow-1][0].sV + delta;
     insert = max2(insert_init, insert_ext);
     M[irow][0].sV = insert;
-    M[irow][0].sH = INT_MIN; /* m[irow][0].sV should be NA, because there's no way to move there with | or \ */
+    M[irow][0].sH = MY_MIN; /* m[irow][0].sV should be NA, because there's no way to move there with - or \ */
     if(local) {
-      int tmpMax = max2(insert, s_hijk); 
+      float tmpMax = max2(insert, s_hijk);
       M[irow][0].score = tmpMax;
       int wh = which_max2(insert, s_hijk);
       switch(wh) {
@@ -220,7 +222,7 @@ int init(nt_t* q,int qlen0, nt_t* t, int tlen0) /* init sequence and alignment m
     del_ext = M[0][icol-1].sH + delta;
     del = max2(del_init, del_ext);
     M[0][icol].sH = del;
-    M[0][icol].sV = INT_MIN; /* see reason above*/
+    M[0][icol].sV = MY_MIN; /* see reason above*/
     if(local) {
       int tmpMax = max2(del, s_hijk);
       M[0][icol].score = tmpMax;
@@ -243,27 +245,27 @@ int init(nt_t* q,int qlen0, nt_t* t, int tlen0) /* init sequence and alignment m
   }
   return(0);
 }
-int max2(int a, int b)
+float max2(float a, float b)
 {
   return a >= b ? a:b;
 }
-int which_max2(int a, int b)
+int which_max2(float a, float b)
 {
-  int mx = max2(a,b);
+  float mx = max2(a,b);
   if(mx == a)
     return(1);
   if(mx == b)
     return(2);
   return(-1);
 }
-int max3(int a, int b, int c)
+float max3(float a, float b, float c)
 {
-  int tmp = a >= b? a:b; 
+  float tmp = a >= b? a:b;
   return tmp >= c ? tmp:c;
 }
-int which_max3(int a, int b,int c)
+int which_max3(float a, float b,float c)
 {
-  int mx = max3(a,b,c);
+  float mx = max3(a,b,c);
   if(mx == a)
     return(1);
   if(mx == b)
@@ -272,16 +274,16 @@ int which_max3(int a, int b,int c)
     return(3);
   return(-1);
 }
-int max4(int a, int b, int c ,int d)
+float max4(float a, float b, float c ,float d)
 {
-  int tmp1, tmp2;
+  float tmp1, tmp2;
   tmp1 = max2(a,b);
   tmp2 = max2(c,d);
   return tmp1 >= tmp2 ? tmp1:tmp2;
 }
-int which_max4(int a, int b,int c,int d)
+int which_max4(float a, float b,float c,float d)
 {
-  int mx = max4(a,b,c,d);
+  float mx = max4(a,b,c,d);
   if(mx == a)
     return(1);
   if(mx == b)
@@ -298,7 +300,7 @@ void Score()
   for(irow = 1;irow <= qlen;irow++)
     for(icol = 1;icol <= tlen;icol++)
       {
-	int match,insert, insert_init,insert_ext,del,del_init, del_ext;
+	float match,insert, insert_init,insert_ext,del,del_init, del_ext;
 	match = M[irow-1][icol-1].score + S[ query[irow-1] ][ temp[icol-1] ];
 	del_init = M[irow][icol-1].score + p + delta;
 	del_ext = M[irow][icol-1].sH + delta;
@@ -308,9 +310,9 @@ void Score()
 	insert_ext = M[irow-1][icol].sV + delta;
 	insert = max2(insert_init, insert_ext);
 	M[irow][icol].sV = insert;
-	int s_hijk = M[0][0].score + 0; /* s_hijk for source hijack, see AIBA p183, this enables the local alignment */
+	float s_hijk = M[0][0].score + 0; /* s_hijk for source hijack, see AIBA p183, this enables the local alignment */
 	if(local) {
-	  int tmpMax = max4(match, insert, del, s_hijk);
+	  float tmpMax = max4(match, insert, del, s_hijk);
 	  M[irow][icol].score = tmpMax;
 	  int wh = which_max4(match, insert, del, s_hijk);
 	  switch(wh) {
@@ -331,7 +333,7 @@ void Score()
 	  }
 	}
 	else {
-	  int tmpMax = max3(match,insert,del);
+	  float tmpMax = max3(match,insert,del);
 	  int wh = which_max3(match,insert,del);
 	  M[irow][icol].score = tmpMax;
 	  switch(wh) {
@@ -407,7 +409,7 @@ int backtrace()
 	      irow,icol);
     }
   }
-  fprintf(stdout,">>>>>>>>>Alignment:%i>>>>>>>>>>>>\n",M[qlen][tlen].score);
+  fprintf(stdout,">>>>>>>>>AlignScore:%f>>>>>>>>>>>>\n",M[qstop][tstop].score);
   if(local)
     fprintf(stdout,"%d-%d\n",tstop-t.n_nt + 1,tstop);
   printstack(&t);
@@ -416,15 +418,15 @@ int backtrace()
   fprintf(stdout,"\n");
   if(local)
     fprintf(stdout,"%d-%d\n",qstop-q.n_nt + 1,qstop);
-  fprintf(stdout,"<<<<<<<<<Alignment<<<<<<<<<<<<<<<\n");
+  fprintf(stdout,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
   stackDispose(&q);stackDispose(&t);
   return(0);
-}
+} 
 
 void bestlocal(int* irow, int* icol)
 {
   int idx,idy;
-  int m = INT_MIN;
+  float m = MY_MIN;
   for(idx=1;idx<=qlen;idx++)
     for(idy=1;idy<=tlen;idy++) {
       if(M[idx][idy].score > m) {

@@ -8,9 +8,9 @@ typedef enum {DELETE,INSERT,MATCH,TERMINATION,UNKNOWN} btrace_t;
 
 /*we store the score&btrace symbol in a cell_t object, which is a matrix cell*/
 typedef struct {
-  int sH; /*for a horizontal move, deletion I think*/
-  int sV; /* vertical move, insertion */
-  int score;
+  float sH; /*for a horizontal move, deletion I think*/
+  float sV; /* vertical move, insertion */
+  float score;
   btrace_t btrace;
 } cell_t;
 
